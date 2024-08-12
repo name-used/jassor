@@ -1,6 +1,6 @@
 import time
 import multiprocessing
-from utils import Timer, TimerManager
+from jassor.utils import Timer, TimerManager
 
 
 def main():

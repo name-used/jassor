@@ -3,7 +3,7 @@ requires = ["setuptools"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools.packages.find]
-include = ["demo", "utils"]
+include = ["jassor", "jassor.utils"]
 exclude = [".gitignore"]
 
 [project]
