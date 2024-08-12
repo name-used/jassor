@@ -8,8 +8,8 @@ exclude = [".gitignore"]
 
 [project]
 name = "jassor"
-version = "0.0.1"
-urls = { text = "https://github.com/name-used/jassor" }
+version = "0.0.2"
+urls = { project_source = "https://github.com/name-used/jassor" }
 authors = [
     { name = 'jassor', email = 'lq.jassor@gmail.com' }
 ]

@@ -1,7 +1,10 @@
+from .logger import Logger
 from .timer import TimerManager, Timer
+from .multiprocess import Queue, Closed, Process, QueueMessageException
 
 
-__all__ = ['TimerManager', 'Timer']
-
-__version__ = '0.0.1'
-__author__ = 'jassor'
+__all__ = [
+    'Logger',
+    'TimerManager', 'Timer',
+    'Queue', 'Closed', 'Process', 'QueueMessageException',
+]
