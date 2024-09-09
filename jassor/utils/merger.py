@@ -55,7 +55,7 @@ class Merger(object):
         # 将 grid 坐标 limit 在坐标范围之内，构成贴片
         # 针对 temp 的计算
         temp_grid = tuple(
-            slice(None) if g is None else slice(max(0, g), min(s, g + k))
+            slice(None) if g is None else slice(max(0, g), min(s, max(0, g + k)))
             for s, k, g in zip(self._temp.shape, self._kernel.shape, grid)
         )
         # # 针对 helper 的计算
@@ -65,7 +65,7 @@ class Merger(object):
         # )
         # 针对 patch 的计算
         patch_grid = tuple(
-            slice(None) if g is None else slice(max(0, -g), min(k, s - g))
+            slice(None) if g is None else slice(max(0, -g), min(k, max(0, s - g)))
             for s, k, g in zip(self._temp.shape, self._kernel.shape, grid)
         )
         # # 针对 kernel 的计算
