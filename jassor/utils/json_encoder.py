@@ -8,27 +8,27 @@ class JassorJsonEncoder(json.JSONEncoder):
         super().__init__(*args, **kwargs)
         # print(*args)
         # print(list(kwargs.items()))
-        self.indent = kwargs['indent'] or 4
-        self.count = 0
+        self._indent = kwargs['indent'] or 4
+        self._count = 0
 
     def encode(self, obj: Any) -> str:
         if isinstance(obj, (list, tuple)) and all(map(lambda x: not isinstance(x, (list, tuple, dict)), obj)) or \
                 isinstance(obj, dict) and all(map(lambda v: not isinstance(v, (list, tuple, dict)), obj.values())):
             json_str = json.dumps(obj)
         elif isinstance(obj, dict):
-            end = '\n' + ' ' * self.count + '}'
-            self.count += self.indent
-            head = '{\n' + ' ' * self.count
+            end = '\n' + ' ' * self._count + '}'
+            self._count += self._indent
+            head = '{\n' + ' ' * self._count
             transer = lambda kv: f'"{str(kv[0])}": {self.encode(kv[1])}'
-            content = f',\n{" " * self.count}'.join(map(transer, obj.items()))
-            self.count -= self.indent
+            content = f',\n{" " * self._count}'.join(map(transer, obj.items()))
+            self._count -= self._indent
             json_str = head + content + end
         elif isinstance(obj, (list, tuple)):
-            end = '\n' + ' ' * self.count + ']'
-            self.count += self.indent
-            head = '[\n' + ' ' * self.count
-            content = f',\n{" " * self.count}'.join(map(self.encode, obj))
-            self.count -= self.indent
+            end = '\n' + ' ' * self._count + ']'
+            self._count += self._indent
+            head = '[\n' + ' ' * self._count
+            content = f',\n{" " * self._count}'.join(map(self.encode, obj))
+            self._count -= self._indent
             json_str = head + content + end
         else:
             json_str = json.dumps(obj)

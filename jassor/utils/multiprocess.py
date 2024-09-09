@@ -31,38 +31,38 @@ class Queue(object):
     """
     def __init__(self, maxsize: int = 0):
         self._top = True
-        self.con = multiprocessing.Condition()
-        self.que = multiprocessing.Queue(maxsize=maxsize)
+        self._con = multiprocessing.Condition()
+        self._que = multiprocessing.Queue(maxsize=maxsize)
         # 状态： 0, 1, 2
         # 0: 异常中止
         # 1: 正常运行
         # 2: 正常中止
-        self.flag = multiprocessing.Value('i', 1)
+        self._flag = multiprocessing.Value('i', 1)
         self._message = multiprocessing.Array('c', b' ' * 1000)
 
     def ready(self) -> bool:
         # 阻塞判定方法，当且仅当队列下一个元素已就绪时返回真
-        return self.flag.value and self.top() is not None
+        return self._flag.value and self.top() is not None
 
     def is_end(self) -> bool:
         # 非阻塞判定方法，当队列已声明为不可用状态，或队列元素已取完并声明结束时返回真
-        return not(self.flag.value and self._top is not None)
+        return not(self._flag.value and self._top is not None)
 
     def count(self) -> int:
         # 非阻塞方法，返回当前队列内的元素数量（不保证准确）
-        return self.flag.value and (self.que.qsize() + (self._top is not True) - (self.flag.value & 0b10))
+        return self._flag.value and (self._que.qsize() + (self._top is not True) - (self._flag.value & 0b10))
 
     def push(self, item: V) -> None:
         # 阻塞方法，向队列内推送值
-        while self.flag.value == 1:
+        while self._flag.value == 1:
             # 正常运行状态，正常使用
             try:
-                self.que.put(item, timeout=0.5)
+                self._que.put(item, timeout=0.5)
                 break
             except Full:
                 pass
         else:
-            if self.flag.value == 2:
+            if self._flag.value == 2:
                 # 正常结束状态
                 return
             # 异常结束状态，直接报错
@@ -70,15 +70,15 @@ class Queue(object):
 
     def top(self) -> V:
         # 阻塞独占方法，查看队列顶端元素值
-        with self.con:
-            while self.flag.value:
+        with self._con:
+            while self._flag.value:
                 # 正常运行状态，正常使用
                 try:
                     if self._top is True:
-                        self._top = self.que.get(timeout=0.5)
+                        self._top = self._que.get(timeout=0.5)
                     break
                 except Empty:
-                    if self.flag.value == 2:
+                    if self._flag.value == 2:
                         # 正常结束状态
                         self._top = None
                         return None
@@ -89,7 +89,7 @@ class Queue(object):
 
     def pop(self) -> V:
         # 阻塞独占方法，从队列中取值
-        with self.con:
+        with self._con:
             item = self.top()
             if item is not None:
                 self._top = True
@@ -106,13 +106,13 @@ class Queue(object):
         """
         if flag:
             # 异常结束
-            self.flag.value = 0
+            self._flag.value = 0
         else:
             # 正常结束
-            self.flag.value = 2
+            self._flag.value = 2
             try:
-                self.que.put(None, timeout=0.1)
-                self.que.put(None, timeout=0.2)
+                self._que.put(None, timeout=0.1)
+                self._que.put(None, timeout=0.2)
             except Full:
                 pass
         self._message.value = message.encode()

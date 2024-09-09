@@ -5,23 +5,23 @@ from typing import Dict, Union
 
 
 class TimerManager(object):
-    register = {}
+    register: Dict[str, Dict[str, float]] = {}
 
     def __init__(self, container: Union[str, Dict[str, float]] = None):
-        self.timers: Dict[str, Timer] = {}
+        self._timers: Dict[str, Timer] = {}
         if isinstance(container, str):
-            self.costs = TimerManager.register[container]
+            self._costs: Dict[str, float] = TimerManager.register[container]
         elif container is not None:
-            self.costs: Dict[str, float] = container
+            self._costs: Dict[str, float] = container
         else:
-            self.costs: Dict[str, float] = {}
+            self._costs: Dict[str, float] = {}
 
     def __getitem__(self, item: str):
-        if item not in self.timers:
-            self.timers[item] = Timer(item, self.costs)
-        if item not in self.costs:
-            self.costs[item] = 0.
-        return self.timers[item]
+        if item not in self._timers:
+            self._timers[item] = Timer(item, self._costs)
+        if item not in self._costs:
+            self._costs[item] = 0.
+        return self._timers[item]
 
     @staticmethod
     def stamp(t: float) -> str:
@@ -44,15 +44,15 @@ class TimerManager(object):
 
 class Timer(object):
     def __init__(self, key: str, container: Union[str, Dict[str, float]]):
-        self.name = key
-        self.costs = container
+        self._name = key
+        self._costs = container
 
     def __enter__(self):
-        if isinstance(self.costs, str):
-            self.costs = TimerManager.register[self.costs]
-        if self.name not in self.costs:
-            self.costs[self.name] = 0.
-        self.start = time.time()
+        if isinstance(self._costs, str):
+            self._costs = TimerManager.register[self._costs]
+        if self._name not in self._costs:
+            self._costs[self._name] = 0.
+        self._start = time.time()
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         if exc_type or exc_val or exc_tb:
@@ -64,7 +64,7 @@ class Timer(object):
             sys.stderr.flush()
             traceback.print_exc()
         else:
-            self.costs[self.name] += time.time() - self.start
+            self._costs[self._name] += time.time() - self._start
         return False
 
     def __call__(self, func: callable):
