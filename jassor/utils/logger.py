@@ -7,7 +7,7 @@ from pathlib import Path
 from threading import Condition
 
 
-class _IOWrapper:  # type: ignore
+class IOWrapper:  # type: ignore
     def __init__(self, write_func: callable, flush_func: callable, close_func: callable):
         self.write = write_func or self.nothing
         self.flush = flush_func or self.nothing
@@ -24,7 +24,7 @@ class Logger(object):
     INFO = 2
     WARNING = 3
 
-    def __init__(self, start: int = 0, indentation: int = 1, file: Union[TextIO, _IOWrapper, TextIOWrapper, str, Path] = sys.stdout, con: Condition = None, level: int = 2):
+    def __init__(self, start: int = 0, indentation: int = 1, file: Union[TextIO, IOWrapper, TextIOWrapper, str, Path] = sys.stdout, con: Condition = None, level: int = 2):
         self._output_file = file
         self._con = con or Condition()
         self._start = start or time()

@@ -9,6 +9,8 @@ my_modules = {
     'QueueMessageException': '.timer',
     'JassorJsonEncoder': '.json_encoder',
     'Merger': '.merger',
+    'random_colors': '.color',
+    'random_rainbow_curves': '.color',
 }
 
 

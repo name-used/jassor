@@ -1,4 +1,3 @@
 numpy~=1.24.4
 opencv-python~=4.10.0.84
 torch~=2.0.1+cu118
-multiprocess~=0.70.16
