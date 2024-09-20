@@ -46,7 +46,7 @@ def demo2():
     T = TimerManager(container='share')
     with T['demo2_1']:
         wait(0.1)
-    test()
+    my_wait()
     # 统计和显示用时
     # 以下两种方式均可使用
     # for name, cost in T.costs.items():
@@ -73,7 +73,7 @@ def demo3():
 
 
 @Timer(key='demo2_2', container='share')
-def test():
+def my_wait():
     # 使用注解方式统计用时
     wait(0.2)
 

@@ -23,6 +23,10 @@ class TimerManager(object):
             self._costs[item] = 0.
         return self._timers[item]
 
+    @property
+    def costs(self) -> Dict[str, float]:
+        return self._costs
+
     @staticmethod
     def stamp(t: float) -> str:
         r = f'{round(t * 1000 % 1000)}ms'
