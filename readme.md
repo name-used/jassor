@@ -2,7 +2,17 @@
 
 ## 一、协议
 
-本项目是本人工具库代码的整理，采用 [GNU General Public License v3.0](https://choosealicense.com/licenses/gpl-3.0/) 开源协议，您可以在保障代码开源的前提下使用（含商业使用）本项目代码。
+本项目是本人工具库代码的整理，采用 [GNU Lesser General Public License v3.0](https://choosealicense.com/licenses/lgpl-3.0/) 开源协议，您可以在 ```./LICENSE.txt``` 看到它。
+
+您可以任意使用（含商业使用）本项目代码，但如果您在本工具库基础上做出了一些修改，这些修改应当被公开 —— 以便开发者们更好的使用它们。
+
+### 第三方依赖
+
+- 本项目依赖于 [**numpy**](https://github.com/numpy/numpy), 该仓库引用的协议是 [BSD 3-Clause License](https://opensource.org/license/BSD-3-Clause) ，您可以在 ```./licenses/LICENSE_BSD.txt``` 看到它。
+
+- 本项目依赖于 [**opencv**](https://github.com/opencv/opencv), 该仓库引用的协议是 [Apache License 2.0](https://www.apache.org/licenses/LICENSE-2.0) ，您可以在 ```./licenses/LICENSE_APACHE.txt``` 看到它。
+
+- 本项目依赖于 [**shapely**](https://github.com/shapely/shapely), 该仓库引用的协议是 [BSD 3-Clause License](https://opensource.org/license/BSD-3-Clause) ，您可以在 ```./licenses/LICENSE_BSD.txt``` 看到它。
 
 ## 二、结构
 
