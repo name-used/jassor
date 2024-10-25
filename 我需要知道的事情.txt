@@ -1,0 +1,12 @@
+生成 pyi 文件的方法是：
+stubgen ./jassor/utils/my_module_name.py -o ./cache
+每次修改完不要忘记调整 pyproject.toml 的版本号
+这是打包的教程 https://zhuanlan.zhihu.com/p/666369946
+我需要做的是两步：
+python -m build
+这会在 dist 下生成当前版本号的 .whl
+然后是：
+twine upload dist/*
+或者
+twine upload dist/jassor-0.1.1.tar.gz dist/jassor-0.1.1-py3-none-any.whl
+这会将 dist 下的内容上传，需要注意的是，这个过程对代理支持很差，需要关掉梯子才能上传成功
