@@ -1,11 +1,18 @@
 from abc import ABC
-from typing import Tuple, Union
+from typing import Tuple, Union, List
+import io
 
 
 class Shape(ABC):
     """
+    平面图形计算库
+     -- >> 仅计算【 平面图形 】，不考虑三维图像
+     -- >> 仅计算【 有面积的区域 】，凡没有面积的，诸如”点“、”线“，一律直接滤除
+     -- >> 仅计算【 有限表示图形 】，诸如分形图形这种强依赖于数学构造而不可能绘制的图形，不予讨论
+
     # 一个推荐的 C++ 实现方案: clipper
-    自定义的 shapely 接口, 约定以下操作:
+
+    自定义接口, 约定以下操作:
     1. 坐标运算:
     位移运算 -> offset, 参数 (x, y) 或 x+yj, 占用 左加运算符, 左减运算符 [+, -]
     缩放运算 -> scale, 参数 float, 占用 左乘运算符, 左除运算符 [*, /]
@@ -32,11 +39,12 @@ class Shape(ABC):
     5. 工程属性
     表示方式 -> reversed, 当前轮廓是正表示的还是负表示的(无穷远不属于轮廓 -> 正表示), 返回 bool, 不占用运算符, 受 补集运算支配
     正形 -> outer, 返回外轮廓(正表示, FULL 除外), 占用 自正运算符 [+]
-    负形 -> inner, 返回内轮廓(正表示, FULL 除外), 占用 自反运算符 [-]
+    负形 -> inners, 返回内轮廓(正表示, FULL 除外), 占用 自反运算符 [-]
+    真值 -> bool, 返回当前图形是否存在轮廓表示（除 empty 和 full 以外都为真）
     6. 轮廓的分解
-    内解 -> sep_inner, 返回 正形数组和负形数组, 不占用运算符
-    外解 -> sep_outer, 多类型返回类型数组, 单类型返回自身构成的数组, 占用 迭代运算符 [iter]
-    点解 -> sep_point, 返回类型结构数组, 参照具体类型说明, 不占用运算符
+    内解 -> sep_in, 返回 正形数组和负形数组, 不占用运算符
+    外解 -> sep_out, 多类型返回类型数组, 单类型返回自身构成的数组, 占用 迭代运算符 [iter]
+    点解 -> sep_p, 返回类型结构数组, 参照具体类型说明, 不占用运算符
     7. 不支持的运算符:
     [
         加减乘除幂的右运算符 +, -, *, /, **
@@ -48,6 +56,9 @@ class Shape(ABC):
     8. 特殊形及操作
     空形 -> EMPTY, 同 [], 正形: EMPTY, 负形: FULL,内解: [], [FULL], 外解: [], 不可点解
     全形 -> FULL, 同 [FULL], 正形: FULL, 负形: EMPTY,内解: [FULL], [], 外解: [FULL], 不可点解
+    9. 读写
+    写出 -> dump/dumps, 将图像写出为文件或字符串
+    加载 -> load/loads, 从文件或字符串中加载图像
     """
     def offset(self, pos: Union[complex, Tuple[float, float]]):
         # 位移变换(原地的)
@@ -146,7 +157,7 @@ class Shape(ABC):
 
     @property
     def reversed(self) -> bool:
-        # 工程学 翻转表示标志
+        # 工程学 返回翻转表示标志的布尔值
         raise NotImplementedError
 
     @property
@@ -155,7 +166,7 @@ class Shape(ABC):
         raise NotImplementedError
 
     @property
-    def inner(self):
+    def inners(self):
         # 工程学 由内轮廓构成的多边形, 若无内轮廓, 返回 EMPTY
         raise NotImplementedError
 
@@ -221,10 +232,10 @@ class Shape(ABC):
         return self.copy().outer
 
     def __neg__(self):
-        return self.copy().inner
+        return self.copy().inners
 
     def __iter__(self):
-        return iter(self.copy().sep_out())
+        return iter(self.sep_out())
 
     # 下列运算符均就地的修改对象
     def __iadd__(self, pos: Union[complex, Tuple[float, float]]):
@@ -260,3 +271,23 @@ class Shape(ABC):
 
     def __irshift__(self, other):
         return self.remove(other)
+
+    def dump(self, f: io.TextIOWrapper):
+        f.write(self.dumps())
+
+    def dumps(self) -> str:
+        raise NotImplementedError
+
+    def dumpb(self, f: io.BufferedWriter):
+        raise NotImplementedError
+
+    def load(self, f: io.TextIOWrapper):
+        return self.loads(f.readlines())
+
+    def loads(self, lines: List[str]):
+        raise NotImplementedError
+
+    def loadb(self, f: io.BufferedReader):
+        raise NotImplementedError
+
+    __slots__ = ()

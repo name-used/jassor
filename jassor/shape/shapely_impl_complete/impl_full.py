@@ -1,11 +1,17 @@
+import io
 from typing import Tuple, Union
 
 from shapely.geometry.base import BaseGeometry
 
-from .definition import Shape, Single, Multi
+from .definition import Shape
 
 
-class Empty(Single, Multi):
+class Full(Shape):
+
+    __slots__ = ()
+
+    def is_valid(self):
+        return True
 
     def buffer(self, distance: float):
         return self
@@ -14,7 +20,7 @@ class Empty(Single, Multi):
         return self
 
     @property
-    def geo(self) -> BaseGeometry:
+    def geo(self):
         return None
 
     def clean(self):
@@ -39,19 +45,19 @@ class Empty(Single, Multi):
         return self
 
     def inter(self, other):
-        return self
+        return other
 
     def union(self, other):
-        return other
+        return self
 
     def diff(self, other):
-        return other
+        return -other
 
     def merge(self, other):
         return self
 
     def remove(self, other):
-        return self
+        return -other
 
     def simplify(self, tolerance: float):
         return self
@@ -92,23 +98,33 @@ class Empty(Single, Multi):
         return self
 
     @property
-    def inner(self):
+    def inners(self):
         return self
 
     def sep_in(self):
-        return [], []
+        return [Shape.FULL], []
 
     def sep_out(self):
-        return []
+        return [Shape.FULL]
 
     def sep_p(self):
-        return []
+        raise[]
 
     def copy(self):
         return self
 
-    def __len__(self):
-        return 0
+    def comp(self):
+        return Shape.EMPTY
+
+    @property
+    def reversed(self) -> bool:
+        return True
+
+    def dumps(self) -> str:
+        return 'Full'
+
+    def dumpb(self, f: io.BufferedWriter):
+        return 'Full', None, None
 
 
-Shape.EMPTY = Empty()
+Shape.FULL = Full()

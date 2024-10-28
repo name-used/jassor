@@ -7,7 +7,7 @@ from .definition import Shape, Single, Multi
 from .impl_base import Base
 
 
-class ComplexMultiPolygon(Base, Multi):
+class MultiComplexPolygon(Base, Multi):
     """
     多-复连通多边形, 创建方式有五:
     1. 指定 outers
@@ -63,7 +63,7 @@ class ComplexMultiPolygon(Base, Multi):
         for g in geos:
             geo = geo.union(g)
         multi = self.__norm_multi__(geo)
-        return ComplexMultiPolygon(multi=multi)
+        return MultiComplexPolygon(multi=multi)
 
     @property
     def outer(self) -> Multi:
@@ -115,9 +115,12 @@ class ComplexMultiPolygon(Base, Multi):
             adjacencies.extend([i] * len(qs))
         return outers, inners, adjacencies
 
+    def comp(self):
+        pass
+
     @property
     def cls(self) -> type:
-        return ComplexMultiPolygon
+        return MultiComplexPolygon
 
 
-Multi.COMPLEX = ComplexMultiPolygon
+Multi.COMPLEX = MultiComplexPolygon

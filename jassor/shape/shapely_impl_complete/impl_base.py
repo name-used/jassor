@@ -1,5 +1,8 @@
+import io
+import json
+import pickle
 from abc import ABC
-from typing import Tuple, Union
+from typing import Tuple, Union, TypeVar
 from shapely.geometry.base import BaseGeometry, BaseMultipartGeometry
 from shapely.geometry.geo import MultiPolygon as StandardMultiPolygon
 from shapely.geometry.geo import Polygon as StandardPolygon
@@ -11,12 +14,13 @@ from .definition import Shape, Single, Multi
 
 class Base(Shape, ABC):
 
-    def __init__(self, geo: BaseGeometry):
-        self.__geo__ = geo
+    def __init__(self, geo: BaseGeometry, reverse: bool = False):
+        self._geo = geo
+        self._reversed = reverse
 
     def offset(self, pos: Union[complex, Tuple[float, float]]) -> Shape:
         x, y = (pos.real, pos.imag) if isinstance(pos, complex) else pos
-        self.__geo__ = A.translate(self.__geo__, x, y)
+        self._geo = A.translate(self._geo, x, y)
         return self
 
     def scale(self, ratio: Union[float, tuple]) -> Shape:
@@ -24,19 +28,19 @@ class Base(Shape, ABC):
             x_fact = y_fact = ratio
         else:
             x_fact, y_fact = ratio
-        self.__geo__ = A.scale(self.__geo__, xfact=x_fact, yfact=y_fact, zfact=0, origin=(0, 0, 0))
+        self._geo = A.scale(self._geo, xfact=x_fact, yfact=y_fact, zfact=0, origin=(0, 0, 0))
         return self
 
     def rotate(self, degree: float) -> Shape:
-        self.__geo__ = A.rotate(self.__geo__, angle=degree, origin=(0, 0, 0))
+        self._geo = A.rotate(self._geo, angle=degree, origin=(0, 0, 0))
         return self
 
     def flip_x(self, intercept_x: float) -> Shape:
-        self.__geo__ = A.scale(self.__geo__, xfact=-1, yfact=1, zfact=0, origin=(intercept_x, 0, 0))
+        self._geo = A.scale(self._geo, xfact=-1, yfact=1, zfact=0, origin=(intercept_x, 0, 0))
         return self
 
     def flip_y(self, intercept_y: float) -> Shape:
-        self.__geo__ = A.scale(self.__geo__, xfact=1, yfact=-1, zfact=0, origin=(0, intercept_y, 0))
+        self._geo = A.scale(self._geo, xfact=1, yfact=-1, zfact=0, origin=(0, intercept_y, 0))
         return self
 
     def flip(self, intercept_x: float, intercept_y: float) -> Shape:
@@ -44,22 +48,22 @@ class Base(Shape, ABC):
 
     def inter(self, other: Shape) -> Multi:
         if not other: return Shape.EMPTY
-        geo = self.__geo__.intersection(other.geo)
+        geo = self._geo.intersection(other.geo)
         return self.__norm_multi__(geo)
 
     def union(self, other: Shape) -> Multi:
-        if not other: return self.__norm_multi__(self.__geo__)
-        geo = self.__geo__.union(other.geo)
+        if not other: return self.__norm_multi__(self._geo)
+        geo = self._geo.union(other.geo)
         return self.__norm_multi__(geo)
 
     def diff(self, other: Shape) -> Multi:
-        if not other: return self.__norm_multi__(self.__geo__)
-        geo = self.__geo__.symmetric_difference(other.geo)
+        if not other: return self.__norm_multi__(self._geo)
+        geo = self._geo.symmetric_difference(other.geo)
         return self.__norm_multi__(geo)
 
     def remove(self, other: Shape) -> Multi:
-        if not other: return self.__norm_multi__(self.__geo__)
-        geo = self.__geo__.difference(other.geo)
+        if not other: return self.__norm_multi__(self._geo)
+        geo = self._geo.difference(other.geo)
         return self.__norm_multi__(geo)
 
     def simplify(self, tolerance: float = 0.5) -> Multi:
@@ -71,62 +75,74 @@ class Base(Shape, ABC):
             David H.Douglas && Thomas K.Peucker
         to simplify instead of normal-topology-friendly algorithm --- slow but stable.
         """
-        geo = self.__geo__.simplify(tolerance=tolerance, preserve_topology=True)
+        geo = self._geo.simplify(tolerance=tolerance, preserve_topology=True)
         return self.__norm_multi__(geo)
 
     def smooth(self, distance: float = 3) -> Multi:
-        geo = self.__geo__.buffer(-distance).buffer(distance)
+        geo = self._geo.buffer(-distance).buffer(distance)
         return self.__norm_multi__(geo)
 
     def buffer(self, distance: float = 3) -> Multi:
-        geo = self.__geo__.buffer(distance)
+        geo = self._geo.buffer(distance)
         return self.__norm_multi__(geo)
 
     def standard(self) -> Multi:
-        geo = unary_union(self.__geo__)
+        geo = unary_union(self._geo)
         return self.__norm_multi__(geo)
 
     @property
     def convex(self) -> Single:
-        geo = self.__geo__.convex_hull
-        return Single.CONVEX(geo=geo)
+        geo = self._geo.convex_hull
+        return Single.SIMPLE(geo=geo)
 
     @property
     def mini_rect(self) -> Single:
-        geo = self.__geo__.minimum_rotated_rectangle
-        return Single.CONVEX(geo=geo)
+        geo = self._geo.minimum_rotated_rectangle
+        return Single.SIMPLE(geo=geo)
 
     @property
     def region(self) -> Single:
-        l, u, r, d = self.__geo__.bounds
+        l, u, r, d = self._geo.bounds
         return Single.REGION(l, u, r, d)
 
     @property
     def center(self) -> Tuple[int, int]:
-        return self.__geo__.centroid.coords[0]
+        return self._geo.centroid.coords[0]
 
     @property
     def area(self) -> float:
-        return self.__geo__.area
+        return self._geo.area
 
     @property
     def perimeter(self) -> float:
-        return self.__geo__.length
+        return self._geo.length
 
     @property
     def bounds(self) -> Tuple[int, int, int, int]:
-        return self.__geo__.bounds
+        return self._geo.bounds
 
     @property
     def geo(self) -> BaseGeometry:
-        return self.__geo__
+        return self._geo
 
     @property
     def cls(self) -> type:
         raise NotImplementedError
 
     def copy(self) -> Shape:
-        return self.cls(geo=self.__geo__)
+        return self.cls(geo=self._geo)
+
+    def dumps(self) -> str:
+        tp = self.cls().__name__
+        rvs = self.reversed
+        contour = self.sep_p()
+        return f'{tp}\n{rvs}\n{json.dumps(contour)}'
+
+    def dumpb(self, f: io.BufferedWriter):
+        tp = self.cls().__name__
+        rvs = self.reversed
+        contour = self.sep_p()
+        pickle.dump((tp, rvs, contour), f)
 
     @staticmethod
     def __norm_single__(geo: BaseGeometry) -> Multi:

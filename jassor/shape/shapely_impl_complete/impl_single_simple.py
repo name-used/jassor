@@ -1,10 +1,10 @@
 from typing import List, Tuple
+
+import shapely
 from shapely.geometry.base import BaseGeometry
-from shapely.geometry.geo import Polygon as StandardPolygon
 
 from .definition import Shape, Single
 from .impl_single_complex import ComplexPolygon
-from .shapely_utils import boundary2coords
 
 
 class SimplePolygon(ComplexPolygon):
@@ -22,36 +22,35 @@ class SimplePolygon(ComplexPolygon):
             outer: List[Tuple[float, float]] = None,
             geo: BaseGeometry = None,
             single: Single = None,
+            from_p: List[Tuple[float, float]] = None,
+            reverse: bool = False
     ):
-        if single is not None:
-            assert isinstance(single, Single), 'Multi 类型无法转换为 Single'
-            single = single.outer
-        elif geo is not None:
-            assert isinstance(geo, StandardPolygon), 'geo 必须是 Polygon'
-            assert geo.boundary.type.upper() == 'LINESTRING', 'boundary 必须是 lineString'
-        super().__init__(outer=outer, geo=geo, single=single)
+        if from_p is not None:
+            outer = from_p
+        super().__init__(outer, geo=geo, single=single, from_p=None, reverse=reverse)
 
     @property
     def outer(self) -> Single:
         # 外轮廓(正形)
-        return self.copy()
+        return Single.asSimple(self)
 
     @property
     def inner(self) -> Shape:
         # 内轮廓(负形)
         return Shape.EMPTY
 
-    def sep_in(self) -> Tuple[List[Single], List[Single]]:
+    def sep_in(self) -> Tuple[Single, Shape.EMPTY]:
         # 内分解
-        return [self.copy()], []
+        return self.outer, self.inner
 
     def sep_out(self) -> List[Single]:
         # 外分解
-        return [self.copy()]
+        return [Single.asSimple(self)]
 
     def sep_p(self) -> List[Tuple[int, int]]:
         # 点分解
-        return boundary2coords(self.geo.boundary)[0]
+        outer = list(shapely.get_exterior_ring(self.geo).coords)
+        return outer
 
     @property
     def cls(self) -> type:

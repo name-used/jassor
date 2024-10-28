@@ -4,10 +4,10 @@ from shapely.geometry.geo import MultiPolygon as StandardMultiPolygon
 from shapely.geometry.geo import Polygon as StandardPolygon
 
 from .definition import Shape, Single, Multi
-from .impl_multi_complex import ComplexMultiPolygon
+from .impl_multi_complex import MultiComplexPolygon
 
 
-class SimpleMultiPolygon(ComplexMultiPolygon):
+class MultiSimplePolygon(MultiComplexPolygon):
     """
     多-单连通多边形, 创建方式有四:
     1. 指定 outers
@@ -78,7 +78,7 @@ class SimpleMultiPolygon(ComplexMultiPolygon):
 
     @property
     def cls(self) -> type:
-        return SimpleMultiPolygon
+        return MultiSimplePolygon
 
 
-Multi.SIMPLE = SimpleMultiPolygon
+Multi.SIMPLE = MultiSimplePolygon
