@@ -39,10 +39,10 @@ class Shape(ABC):
     5. 工程属性
     表示方式 -> reversed, 当前轮廓是正表示的还是负表示的(无穷远不属于轮廓 -> 正表示), 返回 bool, 不占用运算符, 受 补集运算支配
     正形 -> outer, 返回外轮廓(正表示, FULL 除外), 占用 自正运算符 [+]
-    负形 -> inners, 返回内轮廓(正表示, FULL 除外), 占用 自反运算符 [-]
+    负形 -> inner, 返回内轮廓(正表示, FULL 除外), 占用 自反运算符 [-]
     真值 -> bool, 返回当前图形是否存在轮廓表示（除 empty 和 full 以外都为真）
     6. 轮廓的分解
-    内解 -> sep_in, 返回 正形数组和负形数组, 不占用运算符
+    内解 -> sep_in, 返回 正形和负形, 不占用运算符
     外解 -> sep_out, 多类型返回类型数组, 单类型返回自身构成的数组, 占用 迭代运算符 [iter]
     点解 -> sep_p, 返回类型结构数组, 参照具体类型说明, 不占用运算符
     7. 不支持的运算符:
@@ -60,6 +60,9 @@ class Shape(ABC):
     写出 -> dump/dumps, 将图像写出为文件或字符串
     加载 -> load/loads, 从文件或字符串中加载图像
     """
+
+    __slots__ = ()
+
     def offset(self, pos: Union[complex, Tuple[float, float]]):
         # 位移变换(原地的)
         raise NotImplementedError
@@ -166,7 +169,7 @@ class Shape(ABC):
         raise NotImplementedError
 
     @property
-    def inners(self):
+    def inner(self):
         # 工程学 由内轮廓构成的多边形, 若无内轮廓, 返回 EMPTY
         raise NotImplementedError
 
@@ -232,7 +235,7 @@ class Shape(ABC):
         return self.copy().outer
 
     def __neg__(self):
-        return self.copy().inners
+        return self.copy().inner
 
     def __iter__(self):
         return iter(self.sep_out())
@@ -289,5 +292,3 @@ class Shape(ABC):
 
     def loadb(self, f: io.BufferedReader):
         raise NotImplementedError
-
-    __slots__ = ()

@@ -18,6 +18,9 @@ class Base(Shape, ABC):
         self._geo = geo
         self._reversed = reverse
 
+    def comp(self) -> None:
+        self._reversed = not self._reversed
+
     def offset(self, pos: Union[complex, Tuple[float, float]]) -> Shape:
         x, y = (pos.real, pos.imag) if isinstance(pos, complex) else pos
         self._geo = A.translate(self._geo, x, y)

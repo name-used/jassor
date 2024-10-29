@@ -2,7 +2,6 @@ from typing import List, Tuple
 
 import shapely
 from shapely.geometry.base import BaseGeometry
-from shapely.geometry.polygon import InteriorRingSequence
 
 from .definition import Shape, Single, Multi
 from .impl_base import Base
@@ -59,14 +58,13 @@ class ComplexPolygon(Base, Single):
     @property
     def outer(self) -> Single:
         # 外轮廓(正形)
-        geo = shapely.Polygon(shell=shapely.get_exterior_ring(self.geo))
+        geo = shapely.Polygon(shell=self.geo.exterior)
         return Single.SIMPLE(geo=geo)
 
     @property
-    def inners(self) -> Multi:
+    def inner(self) -> Multi:
         # 内轮廓(负形)
-        inners = InteriorRingSequence(self.geo)
-        inners = [shapely.Polygon(shell=inner) for inner in inners]
+        inners = [shapely.Polygon(shell=inner) for inner in self.geo.interiors]
         geo = shapely.MultiPolygon(polygons=inners)
         if geo.is_empty:
             return Shape.EMPTY
@@ -74,24 +72,20 @@ class ComplexPolygon(Base, Single):
 
     def sep_in(self) -> Tuple[Single, Multi]:
         # 内分解
-        return self.outer, self.inners
+        return self.outer, self.inner
 
     def sep_out(self) -> List[Single]:
         # 外分解
         return [self]
 
     def sep_p(self) -> Tuple[
-        List[Tuple[int, int]],
-        List[List[Tuple[int, int]]]
+        List[Tuple[float, float]],
+        List[List[Tuple[float, float]]]
     ]:
         # 点分解
-        outer = list(shapely.get_exterior_ring(self.geo).coords)
-        inners = InteriorRingSequence(self.geo)
-        inners = [list(inner.coords) for inner in inners]
+        outer = list(self.geo.exterior.coords)
+        inners = [list(inner.coords) for inner in self.geo.interiors]
         return outer, inners
-
-    def comp(self):
-        self._reversed = not self._reversed
 
     @property
     def cls(self) -> type:

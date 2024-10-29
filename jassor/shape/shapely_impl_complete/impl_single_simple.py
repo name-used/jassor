@@ -17,6 +17,8 @@ class SimplePolygon(ComplexPolygon):
     当 polygon 是 ComplexPolygon 时, 忽视其内轮廓
     """
 
+    __slots__ = ()
+
     def __init__(
             self,
             outer: List[Tuple[float, float]] = None,
@@ -32,22 +34,18 @@ class SimplePolygon(ComplexPolygon):
     @property
     def outer(self) -> Single:
         # 外轮廓(正形)
-        return Single.asSimple(self)
+        return Single.SIMPLE(geo=self.geo)
 
     @property
     def inner(self) -> Shape:
         # 内轮廓(负形)
         return Shape.EMPTY
 
-    def sep_in(self) -> Tuple[Single, Shape.EMPTY]:
-        # 内分解
-        return self.outer, self.inner
-
     def sep_out(self) -> List[Single]:
         # 外分解
-        return [Single.asSimple(self)]
+        return [Single.SIMPLE(geo=self.geo)]
 
-    def sep_p(self) -> List[Tuple[int, int]]:
+    def sep_p(self) -> List[Tuple[float, float]]:
         # 点分解
         outer = list(shapely.get_exterior_ring(self.geo).coords)
         return outer

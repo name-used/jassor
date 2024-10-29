@@ -33,7 +33,7 @@ class Shape(Interface, abc.ABC):
     __slots__ = ('_geo', '_reversed')
 
     def __bool__(self) -> bool:
-        return self != self.EMPTY and self != self.FULL
+        return self != self.EMPTY and self != self.FULL and not self.geo.is_empty
 
     @property
     def geo(self) -> BaseGeometry:
@@ -118,13 +118,13 @@ class Multi(Shape, abc.ABC):
     __slots__ = ()
 
     @staticmethod
-    def asSimple(shape: Shape) -> Shape:
+    def asSimple(shape: Shape):
         if not shape: return Shape.EMPTY
         assert isinstance(shape, Multi), '将 Single 转换为 Multi 请直接创建指定类型'
         return shape.outer
 
     @staticmethod
-    def asComplex(shape: Shape) -> Shape:
+    def asComplex(shape: Shape):
         if not shape: return Shape.EMPTY
         assert isinstance(shape, Multi), '将 Single 转换为 Multi 请直接创建指定类型'
         return Multi.COMPLEX(multi=shape)
