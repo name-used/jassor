@@ -1,7 +1,6 @@
 from typing import List, Tuple, Iterable
+import shapely
 from shapely.geometry.base import BaseGeometry
-from shapely.geometry.geo import MultiPolygon as StandardMultiPolygon
-from shapely.geometry.geo import Polygon as StandardPolygon
 
 from .definition import Shape, Single, Multi
 from .impl_multi_complex import MultiComplexPolygon
@@ -28,7 +27,7 @@ class MultiSimplePolygon(MultiComplexPolygon):
             reverse: bool = False,
     ):
         if geo is not None:
-            assert isinstance(geo, StandardMultiPolygon), 'geo 必须是 MultiPolygon'
+            assert isinstance(geo, shapely.MultiPolygon), 'geo 必须是 MultiPolygon'
             assert all(g.boundary.type.upper() == 'LINESTRING' for g in geo.geoms), 'geo 必须是单连通的'
         elif shapes is not None:
             assert all(isinstance(shape, (Single.SIMPLE, Multi.SIMPLE)) for shape in shapes if shape), 'shapes 必须由 SIMPLE（单连通） 图像构成'
@@ -63,14 +62,14 @@ class MultiSimplePolygon(MultiComplexPolygon):
 
     def sep_out(self) -> List[Single]:
         # 外分解
-        singles = [Single.SIMPLE(geo=g) for g in self.geo.geoms if isinstance(g, StandardPolygon)]
+        singles = [Single.SIMPLE(geo=g) for g in self.geo.geoms if isinstance(g, shapely.Polygon)]
         singles = [s for s in singles if s.is_valid()]
         return singles
 
     def sep_p(self) -> List[List[Tuple[int, int]]]:
         # 点分解
         # 逐层分解 (规避由 shapely 任意性引起的荒诞错误)
-        singles = [Single.SIMPLE(geo=g) for g in self.geo.geoms if isinstance(g, StandardPolygon)]
+        singles = [Single.SIMPLE(geo=g) for g in self.geo.geoms if isinstance(g, shapely.Polygon)]
         singles = [s for s in singles if s.is_valid()]
         return [s.sep_p() for s in singles if s.is_valid()]
 

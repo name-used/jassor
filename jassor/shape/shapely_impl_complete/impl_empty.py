@@ -96,7 +96,7 @@ class Empty(Shape):
         return self
 
     @property
-    def inners(self):
+    def inner(self):
         return self
 
     def sep_in(self):

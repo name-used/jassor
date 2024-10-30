@@ -3,7 +3,7 @@ from typing import Tuple, Union
 
 from shapely.geometry.base import BaseGeometry
 
-from .definition import Shape
+from .definition import Shape, Single, Multi
 
 
 class Full(Shape):
@@ -98,7 +98,7 @@ class Full(Shape):
         return self
 
     @property
-    def inners(self):
+    def inner(self):
         return self
 
     def sep_in(self):

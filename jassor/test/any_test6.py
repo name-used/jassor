@@ -19,11 +19,11 @@ ss3 = ss1.union(ss2)
 
 # print(ss3)
 # print(s1.exterior)
-tt = ss1.interiors
+# tt = ss1.interiors
 # tt = [[t.coords, []] for t in tt]
-tt = [shapely.Polygon(shell=t) for t in tt]
-tt = shapely.MultiPolygon(polygons=tt)
-print(tt)
+# tt = [shapely.Polygon(shell=t) for t in tt]
+tt = shapely.MultiPolygon(polygons=[s1])
+print(len(tt.geoms))
 # print(tt.area)
 # print(tt.is_empty)
 print([g for g in tt.geoms])

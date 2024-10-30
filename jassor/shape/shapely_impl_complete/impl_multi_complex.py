@@ -50,28 +50,20 @@ class MultiComplexPolygon(Base, Multi):
         else:
             if from_p is not None:
                 outers, inners, adjacencies = from_p
-            assert outers is not None, 'Parameters could not be all empty!'
-            if inners is None and adjacencies is None:
-                coords = [(outer, []) for outer in outers]
+            if outers is not None:
+                if inners is None and adjacencies is None:
+                    coords = [(outer, []) for outer in outers]
+                else:
+                    assert inners is not None and adjacencies is not None and len(inners) == len(adjacencies), '孔洞未对齐'
+                    coords = [
+                        (outer, [inner for j, inner in enumerate(inners) if adjacencies[j] == i])
+                        for i, outer in enumerate(outers)
+                    ]
+                geo = shapely.MultiPolygon(polygons=coords)
             else:
-                assert inners is not None and adjacencies is not None and len(inners) == len(adjacencies), '孔洞未对齐'
-                coords = [
-                    (outer, [inner for j, inner in enumerate(inners) if adjacencies[j] == i])
-                    for i, outer in enumerate(outers)
-                ]
-            geo = shapely.MultiPolygon(polygons=coords)
+                # 没有任何参数的话，就创建一个空对象
+                geo = shapely.MultiPolygon()
         super().__init__(geo=geo, reverse=reverse)
-
-    def merge(self, other: Shape) -> Multi:
-        # 合集运算
-        if not other: return Multi.asComplex(self)
-        geo = self.geo
-        singles = other.sep_out()
-        geos = [s.geo for s in singles if not geo.disjoint(s.geo)]
-        for g in geos:
-            geo = geo.union(g)
-        multi = self.__norm_multi__(geo)
-        return MultiComplexPolygon(multi=multi)
 
     @property
     def outer(self) -> Multi:

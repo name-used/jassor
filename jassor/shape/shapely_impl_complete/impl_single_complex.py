@@ -41,19 +41,9 @@ class ComplexPolygon(Base, Single):
         elif outer is not None:
             geo = shapely.Polygon(shell=outer, holes=inners)
         else:
-            raise ValueError('Parameters could not be all empty!')
+            # 没有任何参数的话，就创建一个空对象
+            geo = shapely.Polygon()
         super().__init__(geo=geo, reverse=reverse)
-
-    def merge(self, other: Shape) -> Single:
-        # 合集运算
-        if not other: return Single.asComplex(self)
-        geo = self.geo
-        singles = other.sep_out()
-        geos = [s.geo for s in singles if not geo.disjoint(s.geo)]
-        for g in geos:
-            geo = geo.union(g)
-        single = self.__norm_single__(geo)
-        return Single.asComplex(shape=single)
 
     @property
     def outer(self) -> Single:

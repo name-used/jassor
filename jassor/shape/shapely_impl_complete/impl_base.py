@@ -2,7 +2,7 @@ import io
 import json
 import pickle
 from abc import ABC
-from typing import Tuple, Union, TypeVar
+from typing import Tuple, Union, Optional
 from shapely.geometry.base import BaseGeometry, BaseMultipartGeometry
 from shapely.geometry.geo import MultiPolygon as StandardMultiPolygon
 from shapely.geometry.geo import Polygon as StandardPolygon
@@ -10,6 +10,10 @@ from shapely.ops import unary_union
 import shapely.affinity as A
 
 from .definition import Shape, Single, Multi
+import functional as F
+
+
+Position = Union[str, complex, Tuple[float, float]]
 
 
 class Base(Shape, ABC):
@@ -18,58 +22,143 @@ class Base(Shape, ABC):
         self._geo = geo
         self._reversed = reverse
 
+    # 这一批运算不改变轮廓类型
     def comp(self) -> None:
         self._reversed = not self._reversed
 
-    def offset(self, pos: Union[complex, Tuple[float, float]]) -> Shape:
-        x, y = (pos.real, pos.imag) if isinstance(pos, complex) else pos
+    def offset(self, vector: Position) -> Shape:
+        if isinstance(vector, str):
+            assert vector == 'origin', '仅支持 "origin" 作为入参'  # 平移图像直至中心点为原点
+            x, y = self.center
+            x = -x
+            y = -y
+        else:
+            x, y = (vector.real, vector.imag) if isinstance(vector, complex) else vector
         self._geo = A.translate(self._geo, x, y)
         return self
 
-    def scale(self, ratio: Union[float, tuple]) -> Shape:
+    def scale(self, ratio: Union[float, complex, tuple], origin: Position = 0j) -> Shape:
+        # 缩放比例支持
         if isinstance(ratio, (float, int)):
             x_fact = y_fact = ratio
+        elif isinstance(ratio, complex):
+            x_fact = ratio.real
+            y_fact = ratio.imag
         else:
             x_fact, y_fact = ratio
-        self._geo = A.scale(self._geo, xfact=x_fact, yfact=y_fact, zfact=0, origin=(0, 0, 0))
+        # 原点支持
+        if isinstance(origin, complex):
+            origin = (origin.real, origin.imag)
+        elif isinstance(origin, str):
+            assert origin == 'center', '仅支持 "center" 作为入参'
+        self._geo = A.scale(self._geo, xfact=x_fact, yfact=y_fact, zfact=0, origin=origin)
         return self
 
-    def rotate(self, degree: float) -> Shape:
-        self._geo = A.rotate(self._geo, angle=degree, origin=(0, 0, 0))
+    def rotate(self, degree: float, origin: Union[str, Position] = 0j) -> Shape:
+        # 注意注意：此处的 degree 是角度制
+        # 原点支持
+        if isinstance(origin, complex):
+            origin = (origin.real, origin.imag)
+        elif isinstance(origin, str):
+            assert origin == 'center', '仅支持 "center" 作为入参'
+        self._geo = A.rotate(self._geo, angle=degree, origin=origin)
         return self
 
-    def flip_x(self, intercept_x: float) -> Shape:
-        self._geo = A.scale(self._geo, xfact=-1, yfact=1, zfact=0, origin=(intercept_x, 0, 0))
+    def flip_x(self, x0: float) -> Shape:
+        self._geo = A.scale(self._geo, xfact=-1, yfact=1, zfact=0, origin=(x0, 0))
         return self
 
-    def flip_y(self, intercept_y: float) -> Shape:
-        self._geo = A.scale(self._geo, xfact=1, yfact=-1, zfact=0, origin=(0, intercept_y, 0))
+    def flip_y(self, y0: float) -> Shape:
+        self._geo = A.scale(self._geo, xfact=1, yfact=-1, zfact=0, origin=(0, y0))
         return self
 
-    def flip(self, intercept_x: float, intercept_y: float) -> Shape:
-        raise NotImplemented('not yet')
+    def flip(self, degree: float, origin: Position) -> Shape:
+        # 直接两次旋转一次对称来做
+        if isinstance(origin, str):
+            assert origin == 'center', '仅支持 "center" 作为入参'
+            x, y = self.center
+        else:
+            x, y = (origin.real, origin.imag) if isinstance(origin, complex) else origin
+        self.rotate(degree=-degree, origin=(x, y))
+        self.flip_y(y0=y)
+        self.rotate(degree=degree, origin=(x, y))
+        return self
 
-    def inter(self, other: Shape) -> Multi:
-        if not other: return Shape.EMPTY
-        geo = self._geo.intersection(other.geo)
-        return self.__norm_multi__(geo)
+    # 这一批运算会改变轮廓类型
+    def inter(self, other: Shape) -> Shape:
+        # 依据 reverse 标志决定真实运算
+        if not self.reversed and not other.reversed:        # 正 + 正 -> 正常运算 - 交         A & B = A & B
+            return F.inter(self, other, reverse=False)
+        if self.reversed and other.reversed:                # 反 + 反 -> 镜像运算 - 并         ~A & ~B = ~(A | B)
+            return F.union(self, other, reverse=True)
+        if not self.reversed and other.reversed:            # 正 + 反 -> 正斜运算 - 我移除它    A & ~B = A >> B
+            return F.remove(self, other, reverse=False)
+        if self.reversed and not other.reversed:            # 反 + 正 -> 反斜运算 - 它移除我    ~A & B = B >> A
+            return F.remove(other, self, reverse=False)
 
-    def union(self, other: Shape) -> Multi:
-        if not other: return self.__norm_multi__(self._geo)
-        geo = self._geo.union(other.geo)
-        return self.__norm_multi__(geo)
+    def union(self, other: Shape) -> Shape:
+        # 依据 reverse 标志决定真实运算
+        if not self.reversed and not other.reversed:        # 正 + 正 -> 正常运算 - 并             A | B = A | B
+            return F.union(self, other, reverse=False)
+        if self.reversed and other.reversed:                # 反 + 反 -> 镜像运算 - 交             ~A | ~B = ~(A & B)
+            return F.inter(self, other, reverse=True)
+        if not self.reversed and other.reversed:            # 正 + 反 -> 正斜运算 - 反(它移除我)    A | ~B = ~(~A & B) = ~(B >> A)
+            return F.remove(other, self, reverse=True)
+        if self.reversed and not other.reversed:            # 反 + 正 -> 反斜运算 - 反(我移除它)    ~A | B = ~(A & ~B) = ~(A >> B)
+            return F.remove(self, other, reverse=True)
 
-    def diff(self, other: Shape) -> Multi:
-        if not other: return self.__norm_multi__(self._geo)
-        geo = self._geo.symmetric_difference(other.geo)
-        return self.__norm_multi__(geo)
+    def diff(self, other: Shape) -> Shape:
+        # 依据 reverse 标志决定真实运算
+        if not self.reversed and not other.reversed:        # 正 + 正 -> 正常运算 - 异
+            return F.diff(self, other, reverse=False)
+        if self.reversed and other.reversed:                # 反 + 反 -> 镜像运算 - 异
+            return F.diff(self, other, reverse=False)
+        if not self.reversed and other.reversed:            # 正 + 反 -> 正斜运算 - 反(异)
+            return F.remove(other, self, reverse=True)
+        if self.reversed and not other.reversed:            # 反 + 正 -> 反斜运算 - 反(异)
+            return F.remove(self, other, reverse=True)
 
-    def remove(self, other: Shape) -> Multi:
+    def remove(self, other: Shape) -> Shape:
         if not other: return self.__norm_multi__(self._geo)
         geo = self._geo.difference(other.geo)
         return self.__norm_multi__(geo)
 
-    def simplify(self, tolerance: float = 0.5) -> Multi:
+    def merge(self, other: Shape) -> Shape:
+        # 合集运算
+        if not other: return Multi.asComplex(self)
+        geo = self.geo
+        singles = other.sep_out()
+        geos = [s.geo for s in singles if not geo.disjoint(s.geo)]
+        for g in geos:
+            geo = geo.union(g)
+        multi = self.__norm_multi__(geo)
+        return MultiComplexPolygon(multi=multi)
+
+    def merge(self, other: Shape) -> Shape:
+        # 合集运算
+        # 这里不能用 copy，因为该方法会被 simple、region、circle 等方法继承，而 merge 是一个运算方法，运算方法的返回值需要保证结果一致性
+        if not other: return Single.asComplex(self)
+        geo = self.geo
+        singles = other.sep_out()
+        # 接下来开始考虑 reverse 问题了
+        if self.reversed and other.reversed:
+            # 两个都反转，必定相交，因此无需判断相交性
+            # 由于 geo 并不参与反转运算，其所表示的都是“外部”，两个轮廓的融合相当于取并，此处取反，并变交
+            for g in [s.geo for s in singles]:
+                geo = geo.intersection(g)
+                geo = self._norm_single(geo)
+
+
+        elif not self.reversed and other.reversed:
+            # 两个都不反转，
+            geos = [s.geo for s in singles if not geo.disjoint(s.geo)]
+            for g in geos:
+                geo = geo.union(g)
+            single = self.__norm_single__(geo)
+            return Single.asComplex(shape=single)
+
+
+    def simplify(self, tolerance: float = 0.5) -> Shape:
         """
         In project: lung_area_seg, there is a image part-id:
             "4|TCGA-NK-A5CR-01Z-00-DX1.A7C57B30-E2C6-4A23-AE71-7E4D7714F8EA"
@@ -79,13 +168,13 @@ class Base(Shape, ABC):
         to simplify instead of normal-topology-friendly algorithm --- slow but stable.
         """
         geo = self._geo.simplify(tolerance=tolerance, preserve_topology=True)
+        return self._norm_multi(geo)
+
+    def smooth(self, distance: float = 3) -> Shape:
+        geo = self._geo._buffer(-distance)._buffer(distance)
         return self.__norm_multi__(geo)
 
-    def smooth(self, distance: float = 3) -> Multi:
-        geo = self._geo.buffer(-distance).buffer(distance)
-        return self.__norm_multi__(geo)
-
-    def buffer(self, distance: float = 3) -> Multi:
+    def buffer(self, distance: float = 3) -> Shape:
         geo = self._geo.buffer(distance)
         return self.__norm_multi__(geo)
 
@@ -133,7 +222,7 @@ class Base(Shape, ABC):
         raise NotImplementedError
 
     def copy(self) -> Shape:
-        return self.cls(geo=self._geo)
+        return self.cls(geo=self._geo, reverse=self.reversed)
 
     def dumps(self) -> str:
         tp = self.cls().__name__
@@ -146,42 +235,3 @@ class Base(Shape, ABC):
         rvs = self.reversed
         contour = self.sep_p()
         pickle.dump((tp, rvs, contour), f)
-
-    @staticmethod
-    def __norm_single__(geo: BaseGeometry) -> Multi:
-        # 过滤 geo， 若 geo 不合法， 直接返回 EMPTY
-        if not (geo is not None and geo.is_valid and not geo.is_empty and geo.area > 0):
-            return Shape.EMPTY
-        # 否则一律返回 Single （集合论运算的结果一律是 Multi）
-        if isinstance(geo, StandardPolygon):
-            # 单形升多形
-            geo = StandardPolygon(geo)
-        elif isinstance(geo, BaseMultipartGeometry):
-            # 多部分形状若含且只含一个 Polygon，则可用
-            polygons = [g for g in geo.geoms if isinstance(g, StandardPolygon)]
-            if len(polygons) != 1:
-                raise TypeError(f'geo 不合法！ {type(geo)}')
-            geo = StandardPolygon(polygons[0])
-        else:
-            raise RuntimeError(f'鬼知道发生了什么, 快来处理bug: {type(geo)}')
-        return Single.COMPLEX(geo=geo)
-
-    @staticmethod
-    def __norm_multi__(geo: BaseGeometry) -> Multi:
-        # 过滤 geo， 若 geo 不合法， 直接返回 EMPTY
-        if not (geo is not None and geo.is_valid and not geo.is_empty and geo.area > 0):
-            return Shape.EMPTY
-        # 否则一律返回 Multi （集合论运算的结果一律是 Multi）
-        if isinstance(geo, StandardPolygon):
-            # 单形升多形
-            geo = StandardMultiPolygon([geo])
-        elif isinstance(geo, BaseMultipartGeometry):
-            # 多部分形状只保留 Polygon
-            polygons = [g for g in geo.geoms if isinstance(g, StandardPolygon)]
-            geo = StandardMultiPolygon(polygons)
-        elif isinstance(geo, StandardMultiPolygon):
-            # 多边形保留
-            pass
-        else:
-            raise RuntimeError(f'鬼知道发生了什么, 快来处理bug: {type(geo)}')
-        return Multi.COMPLEX(geo=geo)

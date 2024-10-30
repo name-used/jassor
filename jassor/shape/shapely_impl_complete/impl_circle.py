@@ -34,4 +34,4 @@ class Circle(SimplePolygon):
         return Circle
 
 
-Single.REGION = Circle
+Single.CIRCLE = Circle

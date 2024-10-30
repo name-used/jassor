@@ -27,7 +27,10 @@ class SimplePolygon(ComplexPolygon):
             from_p: List[Tuple[float, float]] = None,
             reverse: bool = False
     ):
-        if from_p is not None:
+        if geo is not None:
+            assert isinstance(geo, shapely.MultiPolygon), 'geo 必须是 MultiPolygon'
+            assert all(g.boundary.type.upper() == 'LINESTRING' for g in geo.geoms), 'geo 必须是单连通的'
+        elif from_p is not None:
             outer = from_p
         super().__init__(outer, geo=geo, single=single, from_p=None, reverse=reverse)
 
