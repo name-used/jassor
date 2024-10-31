@@ -1,138 +1,81 @@
-import io
-import json
-import pickle
-from abc import ABC
 from typing import Tuple, Union, Optional
-from shapely.geometry.base import BaseGeometry, BaseMultipartGeometry
-from shapely.geometry.geo import MultiPolygon as StandardMultiPolygon
-from shapely.geometry.geo import Polygon as StandardPolygon
-from shapely.ops import unary_union
-import shapely.affinity as A
+import shapely
+from shapely.geometry.base import BaseGeometry
 
-from .definition import Shape, Single, Multi
+from .definition import Shape, Single, Multi, MIN_AREA
+
+
+"""
+这一批函数之所以单独放到 functional 里，是因为它们的逻辑调用关系与 reverse 高度相关
+如果不拆成两族函数，代码写起来会非常臃肿
+所以你会发现，这里只有一些集合论相关的运算
+并且这里是直接对接 shapely 库的实现，并不处理基于 reverse 的逻辑关系（这些关系在上一层函数中已经处理过了）
+"""
+
 
 Position = Union[str, complex, Tuple[float, float]]
 
 
-# 这一批运算会改变轮廓类型
 def inter(self: Shape, other: Shape, reverse: bool) -> Shape:
-    if not other: return Shape.EMPTY
-    geo = self._geo.intersection(other.geo)
-    return norm_multi(self, geo, reverse=reverse)
+    geo = self.geo.intersection(other.geo)
+    return norm_multi(geo, reverse=reverse)
 
 
 def union(self: Shape, other: Shape, reverse: bool) -> Shape:
-    if not other: return self.__norm_multi__(self._geo)
-    geo = self._geo.union(other.geo)
-    return self.__norm_multi__(geo)
-
-
-def merge(self: Shape, other: Shape, reverse: bool) -> Shape:
-    # 合集运算
-    if not other: return Multi.asComplex(self)
-    geo = self.geo
-    singles = other.sep_out()
-    geos = [s.geo for s in singles if not geo.disjoint(s.geo)]
-    for g in geos:
-        geo = geo.union(g)
-    multi = self.__norm_multi__(geo)
-    return MultiComplexPolygon(multi=multi)
-
-def merge(self: Shape, other: Shape, reverse: bool) -> Shape:
-    # 合集运算
-    # 这里不能用 copy，因为该方法会被 simple、region、circle 等方法继承，而 merge 是一个运算方法，运算方法的返回值需要保证结果一致性
-    if not other: return Single.asComplex(self)
-    geo = self.geo
-    singles = other.sep_out()
-    # 接下来开始考虑 reverse 问题了
-    if self.reversed and other.reversed:
-        # 两个都反转，必定相交，因此无需判断相交性
-        # 由于 geo 并不参与反转运算，其所表示的都是“外部”，两个轮廓的融合相当于取并，此处取反，并变交
-        for g in [s.geo for s in singles]:
-            geo = geo.intersection(g)
-            geo = self._norm_single(geo)
-
-
-    elif not self.reversed and other.reversed:
-        # 两个都不反转，
-        geos = [s.geo for s in singles if not geo.disjoint(s.geo)]
-        for g in geos:
-            geo = geo.union(g)
-        single = self.__norm_single__(geo)
-        return Single.asComplex(shape=single)
+    geo = self.geo.union(other.geo)
+    return norm_multi(geo, reverse=reverse)
 
 
 def diff(self: Shape, other: Shape, reverse: bool) -> Shape:
-    if not other: return self.__norm_multi__(self._geo)
-    geo = self._geo.symmetric_difference(other.geo)
-    return self.__norm_multi__(geo)
+    geo = self.geo.symmetric_difference(other.geo)
+    return norm_multi(geo, reverse=reverse)
 
 
 def remove(self: Shape, other: Shape, reverse: bool) -> Shape:
-    if not other: return self.__norm_multi__(self._geo)
-    geo = self._geo.difference(other.geo)
-    return self.__norm_multi__(geo)
+    geo = self.geo.difference(other.geo)
+    return norm_multi(geo, reverse=reverse)
 
 
-def simplify(self, tolerance: float = 0.5) -> Multi:
-    """
-    In project: lung_area_seg, there is a image part-id:
-        "4|TCGA-NK-A5CR-01Z-00-DX1.A7C57B30-E2C6-4A23-AE71-7E4D7714F8EA"
-    that makes error in simplify function.
-    I found that might be caused by 'preserve_topology=False' which uses the following algorithm --- fast but wrong:
-        David H.Douglas && Thomas K.Peucker
-    to simplify instead of normal-topology-friendly algorithm --- slow but stable.
-    """
-    geo = self._geo.simplify(tolerance=tolerance, preserve_topology=True)
-    return self._norm_multi(geo)
-
-def smooth(self, distance: float = 3) -> Multi:
-    geo = self._geo._buffer(-distance)._buffer(distance)
-    return self.__norm_multi__(geo)
-
-def _buffer(self, distance: float = 3) -> Multi:
-    geo = self._geo.buffer(distance)
-    return self.__norm_multi__(geo)
-
-def standard(self) -> Multi:
-    geo = unary_union(self._geo)
-    return self.__norm_multi__(geo)
+def norm_single(geo: BaseGeometry, reverse: bool) -> Single:
+    geo = norm_geo(geo)
+    if geo is None:
+        return Shape.FULL if reverse else Shape.EMPTY
+    if isinstance(geo, shapely.Polygon):
+        return Single.COMPLEX(geo=geo)
+    # 这里如果 geo 跑出来是 multi，而我需要将它按 single 去标准化，就有可能出现异常，异常控制代码在 Single.asComplex 方法里
+    multi = Multi.COMPLEX(geo=geo, reverse=reverse)
+    return Single.asComplex(multi)
 
 
-def norm_single(geo: BaseGeometry) -> Multi:
-    # 过滤 geo， 若 geo 不合法， 直接返回 EMPTY
-    if not (geo is not None and geo.is_valid and not geo.is_empty and geo.area > 0):
-        return Shape.EMPTY
-    # 否则一律返回 Single （集合论运算的结果一律是 Multi）
-    if isinstance(geo, StandardPolygon):
-        # 单形升多形
-        geo = StandardPolygon(geo)
-    elif isinstance(geo, BaseMultipartGeometry):
-        # 多部分形状若含且只含一个 Polygon，则可用
-        polygons = [g for g in geo.geoms if isinstance(g, StandardPolygon)]
-        if len(polygons) != 1:
-            raise TypeError(f'geo 不合法！ {type(geo)}')
-        geo = StandardPolygon(polygons[0])
-    else:
-        raise RuntimeError(f'鬼知道发生了什么, 快来处理bug: {type(geo)}')
-    return Single.COMPLEX(geo=geo)
+def norm_multi(geo: BaseGeometry, reverse: bool) -> Multi:
+    geo = norm_geo(geo)
+    if geo is None:
+        return Shape.FULL if reverse else Shape.EMPTY
+    # 这里如果 geo 跑出来是 multi，而我需要把它变成 single，就需要调用 as 方法了
+    if isinstance(geo, shapely.Polygon):
+        geo = shapely.MultiPolygon(polygons=[geo])
+    return Multi.COMPLEX(geo=geo, reverse=reverse)
 
 
-def norm_multi(geo: BaseGeometry) -> Multi:
-    # 过滤 geo， 若 geo 不合法， 直接返回 EMPTY
-    if not (geo is not None and geo.is_valid and not geo.is_empty and geo.area > 0):
-        return Shape.EMPTY
-    # 否则一律返回 Multi （集合论运算的结果一律是 Multi）
-    if isinstance(geo, StandardPolygon):
-        # 单形升多形
-        geo = StandardMultiPolygon([geo])
-    elif isinstance(geo, BaseMultipartGeometry):
-        # 多部分形状只保留 Polygon
-        polygons = [g for g in geo.geoms if isinstance(g, StandardPolygon)]
-        geo = StandardMultiPolygon(polygons)
-    elif isinstance(geo, StandardMultiPolygon):
-        # 多边形保留
-        pass
-    else:
-        raise RuntimeError(f'鬼知道发生了什么, 快来处理bug: {type(geo)}')
-    return Multi.COMPLEX(geo=geo)
+def norm_geo(geo: BaseGeometry) -> Optional[BaseGeometry]:
+    # 输入检查，处理各种妖魔鬼怪，这里比较重要的是最小面积阈值，需要在每次使用时定义
+    if geo is None or geo.is_empty or geo.area <= MIN_AREA:
+        return None
+    # geo 可能存在自相交的曲线, 也可能 multigeo = [g1, g2] 并且 g1、g2 相交
+    # buff(0) 好像可以消灭一切牛鬼蛇神, unary_union 则只能解决后者，遇到前者直接报错
+    if not geo.is_valid or not geo.is_simple:
+        geo = geo.buffer(0)
+
+    # shapely 中只有 polygon 有面积，因此本工具库也只处理 polygon 或可能包含 polygon 的元素
+    if isinstance(geo, shapely.Polygon):
+        return geo
+
+    if isinstance(geo, shapely.MultiPolygon):
+        return geo
+
+    if isinstance(geo, shapely.GeometryCollection):
+        polygons = [g for g in geo.geoms if isinstance(g, shapely.Polygon)]
+        geo = shapely.MultiPolygon(polygons=polygons)
+        return geo
+
+    return None

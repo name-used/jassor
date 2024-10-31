@@ -2,11 +2,8 @@ import io
 import json
 import pickle
 from abc import ABC
-from typing import Tuple, Union, Optional
-from shapely.geometry.base import BaseGeometry, BaseMultipartGeometry
-from shapely.geometry.geo import MultiPolygon as StandardMultiPolygon
-from shapely.geometry.geo import Polygon as StandardPolygon
-from shapely.ops import unary_union
+from typing import Tuple, Union, Iterable
+from shapely.geometry.base import BaseGeometry
 import shapely.affinity as A
 
 from .definition import Shape, Single, Multi
@@ -84,12 +81,38 @@ class Base(Shape, ABC):
         self.rotate(degree=degree, origin=(x, y))
         return self
 
+    def is_joint(self, other: Shape) -> bool:
+        # EMPT 和 FULL 不属于 Base，不会调用此方法，其判别在自己的逻辑内进行即可
+        if other is Shape.EMPTY or other is Shape.FULL: return other.is_joint(self)
+        if not self.reversed and not other.reversed:        # 对正常图形来说，直接调库
+            return self.geo.intersects(other.geo)
+        if self.reversed and other.reversed:                # 两个反形必然相交，因为无穷远处总有一个元素同时属于二者
+            return True
+        if not self.reversed and other.reversed:            # 一正一反的情况下，需要判断是否反形完全涵盖正形
+            return not other.geo.contains(self.geo)
+        if self.reversed and not other.reversed:            # 一正一反的情况下，需要判断是否反形完全涵盖正形
+            return not self.geo.contains(other.geo)
+
+    def if_contain(self, other: Shape) -> bool:
+        # EMPT 和 FULL 不属于 Base，不会调用此方法，其判别在自己的逻辑内进行即可
+        if other is Shape.EMPTY or other is Shape.FULL: return other.is_joint(self)
+        if not self.reversed and not other.reversed:        # 对正常图形来说，直接调库
+            return self.geo.contains(other.geo)
+        if self.reversed and other.reversed:                # 两个反形的包含关系刚好调过来
+            return other.geo.contains(self.geo)
+        if not self.reversed and other.reversed:            # 正形不可能包含反形
+            return False
+        if self.reversed and not other.reversed:            # 反形的 geo 与正形完全不相交的情况下即意味着包含
+            return not self.geo.intersects(other.geo)
+
     # 这一批运算会改变轮廓类型
     def inter(self, other: Shape) -> Shape:
+        # EMPT 和 FULL 不属于 Base，不会调用此方法，其判别在自己的逻辑内进行即可
+        if other is Shape.EMPTY or other is Shape.FULL: return other.inter(self)
         # 依据 reverse 标志决定真实运算
         if not self.reversed and not other.reversed:        # 正 + 正 -> 正常运算 - 交         A & B = A & B
             return F.inter(self, other, reverse=False)
-        if self.reversed and other.reversed:                # 反 + 反 -> 镜像运算 - 并         ~A & ~B = ~(A | B)
+        if self.reversed and other.reversed:                # 反 + 反 -> 镜像运算 - 反(并)     ~A & ~B = ~(A | B)
             return F.union(self, other, reverse=True)
         if not self.reversed and other.reversed:            # 正 + 反 -> 正斜运算 - 我移除它    A & ~B = A >> B
             return F.remove(self, other, reverse=False)
@@ -97,10 +120,12 @@ class Base(Shape, ABC):
             return F.remove(other, self, reverse=False)
 
     def union(self, other: Shape) -> Shape:
+        # EMPT 和 FULL 不属于 Base，不会调用此方法，其判别在自己的逻辑内进行即可
+        if other is Shape.EMPTY or other is Shape.FULL: return other.union(self)
         # 依据 reverse 标志决定真实运算
         if not self.reversed and not other.reversed:        # 正 + 正 -> 正常运算 - 并             A | B = A | B
             return F.union(self, other, reverse=False)
-        if self.reversed and other.reversed:                # 反 + 反 -> 镜像运算 - 交             ~A | ~B = ~(A & B)
+        if self.reversed and other.reversed:                # 反 + 反 -> 镜像运算 - 反(交)         ~A | ~B = ~(A & B)
             return F.inter(self, other, reverse=True)
         if not self.reversed and other.reversed:            # 正 + 反 -> 正斜运算 - 反(它移除我)    A | ~B = ~(~A & B) = ~(B >> A)
             return F.remove(other, self, reverse=True)
@@ -108,79 +133,64 @@ class Base(Shape, ABC):
             return F.remove(self, other, reverse=True)
 
     def diff(self, other: Shape) -> Shape:
+        # EMPT 和 FULL 不属于 Base，不会调用此方法，其判别在自己的逻辑内进行即可
+        if other is Shape.EMPTY or other is Shape.FULL: return other.diff(self)
         # 依据 reverse 标志决定真实运算
-        if not self.reversed and not other.reversed:        # 正 + 正 -> 正常运算 - 异
+        if not self.reversed and not other.reversed:        # 正 + 正 -> 正常运算 - 异         A ^ B = (A & ~B) | (~A & B) = A ^ B
             return F.diff(self, other, reverse=False)
-        if self.reversed and other.reversed:                # 反 + 反 -> 镜像运算 - 异
+        if self.reversed and other.reversed:                # 反 + 反 -> 镜像运算 - 异         ~A ^ ~B = (~A & B) | (A & ~B) = A ^ B
             return F.diff(self, other, reverse=False)
-        if not self.reversed and other.reversed:            # 正 + 反 -> 正斜运算 - 反(异)
+        if not self.reversed and other.reversed:            # 正 + 反 -> 正斜运算 - 反(异)      A ^ ~B = (A & B) | (~A & ~B) = (A&B) | ~(A|B) = ~[~(A&B) & (A|B)] = ~[(A|B) >> (A&B)] = ~(A ^ B)
             return F.remove(other, self, reverse=True)
-        if self.reversed and not other.reversed:            # 反 + 正 -> 反斜运算 - 反(异)
+        if self.reversed and not other.reversed:            # 反 + 正 -> 反斜运算 - 反(异)      ~A ^ B = A ^ ~B = ~(A ^ B)
             return F.remove(self, other, reverse=True)
 
     def remove(self, other: Shape) -> Shape:
-        if not other: return self.__norm_multi__(self._geo)
-        geo = self._geo.difference(other.geo)
-        return self.__norm_multi__(geo)
+        # EMPT 和 FULL 不属于 Base，不会调用此方法，其判别在自己的逻辑内进行即可
+        if other is Shape.EMPTY or other is Shape.FULL: return other.remove(self)
+        # 依据 reverse 标志决定真实运算
+        if not self.reversed and not other.reversed:        # 正 + 正 -> 正常运算 - 我移除它      A >> B = (A & ~B) = A >> B
+            return F.remove(self, other, reverse=False)
+        if self.reversed and other.reversed:                # 反 + 反 -> 镜像运算 - 它移除我      ~A >> ~B = (~A & B) = B >> A
+            return F.remove(other, self, reverse=False)
+        if not self.reversed and other.reversed:            # 正 + 反 -> 正斜运算 - 交           A >> ~B = (A & B) = A & B
+            return F.inter(self, other, reverse=False)
+        if self.reversed and not other.reversed:            # 反 + 正 -> 反斜运算 - 反(并)       ~A >> B = (~A & ~B) = ~(A|B)
+            return F.union(self, other, reverse=True)
 
-    def merge(self, other: Shape) -> Shape:
-        # 合集运算
-        if not other: return Multi.asComplex(self)
-        geo = self.geo
-        singles = other.sep_out()
-        geos = [s.geo for s in singles if not geo.disjoint(s.geo)]
-        for g in geos:
-            geo = geo.union(g)
-        multi = self.__norm_multi__(geo)
-        return MultiComplexPolygon(multi=multi)
-
-    def merge(self, other: Shape) -> Shape:
-        # 合集运算
-        # 这里不能用 copy，因为该方法会被 simple、region、circle 等方法继承，而 merge 是一个运算方法，运算方法的返回值需要保证结果一致性
-        if not other: return Single.asComplex(self)
-        geo = self.geo
-        singles = other.sep_out()
-        # 接下来开始考虑 reverse 问题了
-        if self.reversed and other.reversed:
-            # 两个都反转，必定相交，因此无需判断相交性
-            # 由于 geo 并不参与反转运算，其所表示的都是“外部”，两个轮廓的融合相当于取并，此处取反，并变交
-            for g in [s.geo for s in singles]:
-                geo = geo.intersection(g)
-                geo = self._norm_single(geo)
-
-
-        elif not self.reversed and other.reversed:
-            # 两个都不反转，
-            geos = [s.geo for s in singles if not geo.disjoint(s.geo)]
-            for g in geos:
-                geo = geo.union(g)
-            single = self.__norm_single__(geo)
-            return Single.asComplex(shape=single)
-
+    def merge(self, others: Iterable[Shape]) -> Shape:
+        # 排除与自身不相交的
+        joins = [other for other in others if self.is_joint(other)]
+        # 检查有没有 Full, 如果有, 直接返回 Full
+        if any((other is Shape.FULL) for other in joins): return Shape.FULL
+        # 将自己也加进去
+        joins.append(self)
+        # 相交的图形将正形反形分离开
+        pos_shapes = [other for other in joins if not other.reversed]
+        neg_shapes = [other for other in joins if other.reversed]
+        # 正形参与 union 运算
+        pos_shape = F.union(*pos_shapes, reverse=False)
+        # 反形参与 inter 运算
+        neg_shape = F.inter(*neg_shapes, reverse=True)
+        # 二者之和即为所求
+        return pos_shape.union(neg_shape)
 
     def simplify(self, tolerance: float = 0.5) -> Shape:
-        """
-        In project: lung_area_seg, there is a image part-id:
-            "4|TCGA-NK-A5CR-01Z-00-DX1.A7C57B30-E2C6-4A23-AE71-7E4D7714F8EA"
-        that makes error in simplify function.
-        I found that might be caused by 'preserve_topology=False' which uses the following algorithm --- fast but wrong:
-            David H.Douglas && Thomas K.Peucker
-        to simplify instead of normal-topology-friendly algorithm --- slow but stable.
-        """
-        geo = self._geo.simplify(tolerance=tolerance, preserve_topology=True)
-        return self._norm_multi(geo)
+        geo = self.geo.simplify(tolerance=tolerance, preserve_topology=True)
+        return F.norm_multi(geo, reverse=self.reversed)
 
     def smooth(self, distance: float = 3) -> Shape:
-        geo = self._geo._buffer(-distance)._buffer(distance)
-        return self.__norm_multi__(geo)
+        distance = -distance if self.reversed else distance
+        geo = self.geo.buffer(-distance).buffer(distance)
+        return F.norm_multi(geo, reverse=self.reversed)
 
     def buffer(self, distance: float = 3) -> Shape:
-        geo = self._geo.buffer(distance)
-        return self.__norm_multi__(geo)
+        distance = -distance if self.reversed else distance
+        geo = self.geo.buffer(distance=distance)
+        return F.norm_multi(geo, reverse=self.reversed)
 
     def standard(self) -> Multi:
-        geo = unary_union(self._geo)
-        return self.__norm_multi__(geo)
+        return F.norm_multi(self.geo, reverse=self.reversed)
 
     @property
     def convex(self) -> Single:

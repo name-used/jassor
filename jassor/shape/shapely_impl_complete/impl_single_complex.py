@@ -3,8 +3,9 @@ from typing import List, Tuple
 import shapely
 from shapely.geometry.base import BaseGeometry
 
-from .definition import Shape, Single, Multi
+from .definition import Shape, Single, Multi, CoordinatesNotLegalException, NoParametersException
 from .impl_base import Base
+import functional as F
 
 
 class ComplexPolygon(Base, Single):
@@ -39,10 +40,15 @@ class ComplexPolygon(Base, Single):
             outer, inners = from_p
             geo = shapely.Polygon(shell=outer, holes=inners)
         elif outer is not None:
+            # 对用户输入进行检查和修复
             geo = shapely.Polygon(shell=outer, holes=inners)
+            geo = F.norm_geo(geo)
+            # 创建时要求轮廓必须合法
+            if geo is None or isinstance(geo, shapely.MultiPolygon):
+                raise CoordinatesNotLegalException(f'creating single polygon with geo=={type(geo)}')
         else:
-            # 没有任何参数的话，就创建一个空对象
-            geo = shapely.Polygon()
+            # 没有任何参数的话，要报个错
+            raise NoParametersException(f'Any of such parameters have to be provided: (outer, *inners), geo, single, from_p')
         super().__init__(geo=geo, reverse=reverse)
 
     @property

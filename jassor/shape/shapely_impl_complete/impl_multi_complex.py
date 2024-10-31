@@ -3,8 +3,9 @@ from typing import List, Tuple, Iterable
 import shapely
 from shapely.geometry.base import BaseGeometry
 
-from .definition import Shape, Single, Multi
+from .definition import Shape, Single, Multi, NoParametersException, CoordinatesNotLegalException
 from .impl_base import Base
+import functional as F
 
 
 class MultiComplexPolygon(Base, Multi):
@@ -38,7 +39,7 @@ class MultiComplexPolygon(Base, Multi):
         if geo is not None:
             assert isinstance(geo, shapely.MultiPolygon), 'geo 必须是 MultiPolygon'
         elif shapes is not None:
-            assert not any(shape.reversed() for shape in shapes), '创建 MultiPolygon 时只能采用正形描述'
+            assert not any(shape.reversed for shape in shapes), '创建 MultiPolygon 时只能采用正形描述'
             geoms = []
             for shape in shapes:
                 if not shape: continue
@@ -50,19 +51,27 @@ class MultiComplexPolygon(Base, Multi):
         else:
             if from_p is not None:
                 outers, inners, adjacencies = from_p
-            if outers is not None:
-                if inners is None and adjacencies is None:
-                    coords = [(outer, []) for outer in outers]
-                else:
-                    assert inners is not None and adjacencies is not None and len(inners) == len(adjacencies), '孔洞未对齐'
-                    coords = [
-                        (outer, [inner for j, inner in enumerate(inners) if adjacencies[j] == i])
-                        for i, outer in enumerate(outers)
-                    ]
-                geo = shapely.MultiPolygon(polygons=coords)
+            if outers is None:
+                # 没有任何参数的话，要报个错
+                raise NoParametersException(f'Any of such parameters have to be provided: (outer, *inners), geo, single, from_p')
+
+            if inners is None and adjacencies is None:
+                coords = [(outer, []) for outer in outers]
             else:
-                # 没有任何参数的话，就创建一个空对象
-                geo = shapely.MultiPolygon()
+                assert inners is not None and adjacencies is not None and len(inners) == len(adjacencies), '孔洞未对齐'
+                coords = [
+                    (outer, [inner for j, inner in enumerate(inners) if adjacencies[j] == i])
+                    for i, outer in enumerate(outers)
+                ]
+            # 对用户输入进行检查和修复
+            geo = shapely.MultiPolygon(polygons=coords)
+            geo = F.norm_geo(geo)
+            # 创建时要求轮廓必须合法
+            if geo is None:
+                raise CoordinatesNotLegalException(f'creating single polygon with geo=={type(geo)}')
+            elif isinstance(geo, shapely.Polygon):
+                geo = shapely.MultiPolygon(polygons=[geo])
+
         super().__init__(geo=geo, reverse=reverse)
 
     @property

@@ -33,10 +33,11 @@ class ShapeInterface(ABC, Generic[T]):
     交集 -> inter, 占用 与运算符 [&]
     并集 -> union, 占用 或运算符 [|]
     判定相交 -> is_joint, 不占用运算符
+    判定覆盖 -> if_contain, 不占用运算符
     * 异集 -> diff, 取双方互不隶属的元素组成新集合, 占用 异或运算符 [^]
     * 补集 -> comp, 交换集合内外元素, 占用 按位反运算符 [~]
-    * 合集 -> merge, 在相交的情况下，令 other 附着至 self, 占用 左移运算符 [<<]
-    * 差集 -> remove, 将 other 的元素从 self 中移除, 占用 右移运算符 [>>]
+    * 合集 -> merge, 在相交的情况下，令 other: T 附着至 self, 占用 左移运算符 [<<]
+    * 差集 -> remove, 将 other: T 的元素从 self 中移除, 占用 右移运算符 [>>]
     3. 形态学运算:
     凸包络 -> convex, 不占用运算符
     密接矩形 -> mini_rect, 不占用运算符
@@ -99,19 +100,23 @@ class ShapeInterface(ABC, Generic[T]):
         # 镜像变换, 对称轴 x/a + y/b = 1 (原地的)
         raise NotImplementedError
 
-    def inter(self, other) -> T:
+    def inter(self, other: T) -> T:
         # 集合论 交集运算 (创建新对象)
         raise NotImplementedError
 
-    def union(self, other) -> T:
+    def union(self, other: T) -> T:
         # 集合论 并集运算 (创建新对象)
         raise NotImplementedError
 
-    def is_joint(self, other) -> bool:
+    def is_joint(self, other: T) -> bool:
         # 集合论 判断相交
         raise NotImplementedError
 
-    def diff(self, other) -> T:
+    def if_contain(self, other: T) -> bool:
+        # 集合论 判断覆盖
+        raise NotImplementedError
+
+    def diff(self, other: T) -> T:
         # 集合论 异集运算 (创建新对象)
         raise NotImplementedError
 
@@ -119,11 +124,11 @@ class ShapeInterface(ABC, Generic[T]):
         # 集合论 补集运算 (创建新对象)
         raise NotImplementedError
 
-    def merge(self, other) -> T:
+    def merge(self, others: Iterable[T]) -> T:
         # 集合论 合集运算 (创建新对象)
         raise NotImplementedError
 
-    def remove(self, other) -> T:
+    def remove(self, other: T) -> T:
         # 集合论 差集运算 (创建新对象)
         raise NotImplementedError
 
@@ -229,22 +234,22 @@ class ShapeInterface(ABC, Generic[T]):
     def __pow__(self, degree: float) -> T:
         return self.copy().rotate(degree)
 
-    def __and__(self, other) -> T:
+    def __and__(self, other: T) -> T:
         return self.copy().inter(other)
 
-    def __or__(self, other) -> T:
+    def __or__(self, other: T) -> T:
         return self.copy().union(other)
 
-    def __xor__(self, other) -> T:
+    def __xor__(self, other: T) -> T:
         return self.copy().diff(other)
 
     def __invert__(self) -> T:
         return self.copy().comp()
 
-    def __lshift__(self, other) -> T:
+    def __lshift__(self, other: T) -> T:
         return self.copy().merge(other)
 
-    def __rshift__(self, other) -> T:
+    def __rshift__(self, other: T) -> T:
         return self.copy().remove(other)
 
     def __pos__(self) -> T:
@@ -276,19 +281,19 @@ class ShapeInterface(ABC, Generic[T]):
     def __ipow__(self, degree: float) -> T:
         return self.rotate(degree)
 
-    def __iand__(self, other) -> T:
+    def __iand__(self, other: T) -> T:
         return self.inter(other)
 
-    def __ior__(self, other) -> T:
+    def __ior__(self, other: T) -> T:
         return self.union(other)
 
-    def __ixor__(self, other) -> T:
+    def __ixor__(self, other: T) -> T:
         return self.diff(other)
 
-    def __ilshift__(self, other) -> T:
+    def __ilshift__(self, other: T) -> T:
         return self.merge(other)
 
-    def __irshift__(self, other) -> T:
+    def __irshift__(self, other: T) -> T:
         return self.remove(other)
 
     def dump(self, f: io.TextIOWrapper) -> None:

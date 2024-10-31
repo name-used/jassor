@@ -3,8 +3,9 @@ from typing import List, Tuple
 import shapely
 from shapely.geometry.base import BaseGeometry
 
-from .definition import Shape, Single
+from .definition import Shape, Single, CoordinatesNotLegalException, NoParametersException
 from .impl_single_complex import ComplexPolygon
+import functional as F
 
 
 class SimplePolygon(ComplexPolygon):
@@ -30,9 +31,26 @@ class SimplePolygon(ComplexPolygon):
         if geo is not None:
             assert isinstance(geo, shapely.MultiPolygon), 'geo 必须是 MultiPolygon'
             assert all(g.boundary.type.upper() == 'LINESTRING' for g in geo.geoms), 'geo 必须是单连通的'
+        elif single is not None:
+            assert isinstance(single, Single), 'Multi 类型无法转换为 Single'
+            geo = single.geo
         elif from_p is not None:
             outer = from_p
-        super().__init__(outer, geo=geo, single=single, from_p=None, reverse=reverse)
+            geo = shapely.Polygon(shell=outer, holes=[])
+        elif outer is not None:
+            # 对用户输入进行检查和修复
+            geo = shapely.Polygon(shell=outer, holes=[])
+            geo = F.norm_geo(geo)
+            # 创建时要求轮廓必须合法
+            if geo is None or isinstance(geo, shapely.MultiPolygon):
+                raise CoordinatesNotLegalException(f'creating single polygon with geo=={type(geo)}')
+            # 还得是单连通的
+            if bool(geo.interiors):
+                raise CoordinatesNotLegalException(f'SimplePolygon not allowed interiors coordinates with geo interiors nums: {len(geo.interiors)}')
+        else:
+            # 没有任何参数的话，要报个错
+            raise NoParametersException(f'Any of such parameters have to be provided: outer, geo, single, from_p')
+        super().__init__(None, geo=geo, single=None, from_p=None, reverse=reverse)
 
     @property
     def outer(self) -> Single:

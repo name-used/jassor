@@ -3,11 +3,11 @@ import abc
 import io
 import json
 import pickle
-
 import shapely
 from shapely.geometry.base import BaseGeometry
-
 from ..interface import ShapeInterface
+
+MIN_AREA = 1e-7
 
 
 class Shape(ShapeInterface['Shape'], abc.ABC):
@@ -47,12 +47,6 @@ class Shape(ShapeInterface['Shape'], abc.ABC):
     def is_valid(self) -> bool:
         geo = self.geo
         return geo is not None and geo.is_valid and not geo.is_empty and geo.area > 0
-
-    def is_joint(self, other) -> bool:
-        if self.is_valid() and other.is_valid():
-            return not self.geo.disjoint(other.geo)
-        else:
-            return False
 
     # @abc.abstractmethod
     # def clean(self):
@@ -191,3 +185,11 @@ class ConvertMulti2SingleException(Exception):
     def mode_smart(thresh: float = 0.05):
         ConvertMulti2SingleException.mode = 'smart'
         ConvertMulti2SingleException.thresh = thresh
+
+
+def CoordinatesNotLegalException(Exception):
+    pass
+
+
+def NoParametersException(Exception):
+    pass

@@ -2,8 +2,9 @@ from typing import List, Tuple, Iterable
 import shapely
 from shapely.geometry.base import BaseGeometry
 
-from .definition import Shape, Single, Multi
+from .definition import Shape, Single, Multi, NoParametersException, CoordinatesNotLegalException
 from .impl_multi_complex import MultiComplexPolygon
+import functional as F
 
 
 class MultiSimplePolygon(MultiComplexPolygon):
@@ -31,9 +32,26 @@ class MultiSimplePolygon(MultiComplexPolygon):
             assert all(g.boundary.type.upper() == 'LINESTRING' for g in geo.geoms), 'geo 必须是单连通的'
         elif shapes is not None:
             assert all(isinstance(shape, (Single.SIMPLE, Multi.SIMPLE)) for shape in shapes if shape), 'shapes 必须由 SIMPLE（单连通） 图像构成'
-        elif from_p is not None:
-            outers = from_p
-        super().__init__(outers=outers, geo=geo, shapes=shapes, reverse=reverse)
+        else:
+            if from_p is not None:
+                outers = from_p
+            if outers is None:
+                # 没有任何参数的话，要报个错
+                raise NoParametersException(f'Any of such parameters have to be provided: (outer, *inners), geo, single, from_p')
+
+            # 对用户输入进行检查和修复
+            geo = shapely.MultiPolygon(polygons=[(outer, []) for outer in outers])
+            geo = F.norm_geo(geo)
+            # 创建时要求轮廓必须合法
+            if geo is None:
+                raise CoordinatesNotLegalException(f'creating single polygon with geo=={type(geo)}')
+            elif isinstance(geo, shapely.Polygon):
+                geo = shapely.MultiPolygon(polygons=[geo])
+            # 还得是单连通的
+            if any(g.interiors for g in geo.geoms):
+                raise CoordinatesNotLegalException(f'MultiSimplePolygon not allowed interiors coordinates with geo interiors nums: {list(len(g.interiors) for g in geo.geoms)}')
+
+        super().__init__(outers=None, geo=geo, shapes=shapes, reverse=reverse)
 
     # def merge(self, shape: Shape) -> Multi:
     #     # 合集运算
