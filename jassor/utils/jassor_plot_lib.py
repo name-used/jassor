@@ -37,6 +37,8 @@ def plots(items: List[Any], titles: List[str] = None, window_name: str = 'jassor
 
     fig, axs = plt.subplots(row, col)
     axs = [axs] if row == col == 1 else axs.flatten()
+    for ax in axs[n:]:
+        fig.delaxes(ax)
 
     for ax, item, title in zip(axs, items, titles):
         plot_item(ax, item)

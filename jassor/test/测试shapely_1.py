@@ -6,21 +6,13 @@ import jassor.shape as S
 
 
 def main():
-    # J.plot(S.Region(0, 0, 1, 1) ** 15)
-    mytest_creator()
+    mytest_jshape1()
 
 
-def mytest_creator():
-    # s1 = S.create_polygon(len_sides=[], degrees=[])
-    s1 = S.create_regular_polygon(8, len_side=1)
-    J.plot(s1)
-
-
-def mytest_jshape():
+def mytest_jshape2():
     s1 = S.Region(0, 0, 100, 100)
     s2 = S.Region(10, 10, 20, 20)
     s3 = S.Circle(50, 50, 20)
-
     s4 = s1 >> s2 >> s3
     J.plot(s1)
     J.plot(s2)
@@ -28,6 +20,28 @@ def mytest_jshape():
     J.plot(s4)
     J.plots([s1 | s2 * 5 + (200, 0) | s4 + (200, 200)])
     J.plots([s1, s2, s3, None, S.EMPTY, S.FULL, shapely.Point(), shapely.LineString(), shapely.Polygon()])
+
+
+def mytest_jshape1():
+    s1 = S.Region(0, 0, 100, 100)
+    s2 = S.Region(10, 10, 20, 20)
+    s3 = S.Circle(50, 50, 20)
+    s4 = s1 >> s2 >> s3
+    J.plot(s1)
+    J.plot(s2)
+    J.plot(s3)
+    J.plot(s4)
+    J.plots([s1 | s2 * 5 + (200, 0) | s4 + (200, 200)])
+    J.plots([s1, s2, s3, None, S.EMPTY, S.FULL, shapely.Point(), shapely.LineString(), shapely.Polygon()])
+
+
+def mytest_creator():
+    s1 = S.create_regular_polygon(8, len_side=1)
+    s2 = S.create_triangle([3, None, 4], [None, None, 60])
+    s3 = S.create_triangle([3, None, None], [90, None, 60])
+    s4 = S.create_polygon(len_sides=[2, 1, 1, 1.414], degrees=[90, 90, 135, 45])
+    s5 = S.create_polygon(len_sides=[2, 1, 1], degrees=[90, 90, 135], ring_close=False)
+    J.plots([s1, s2, s3, s4, s5])
 
 
 def mytest_shapely():
@@ -42,7 +56,6 @@ def mytest_shapely():
     s6 = shapely.MultiLineString(lines=[s2, s3])
     s7 = shapely.MultiPolygon(polygons=[s4, A.translate(s4, 120, 120)])
     s8 = shapely.GeometryCollection(geoms=[s1, s2, s3, s4])
-
     J.plots([s1, s2, s3, s4, s5, s6, s7, s8, None])
 
 

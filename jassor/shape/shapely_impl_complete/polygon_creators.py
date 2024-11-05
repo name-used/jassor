@@ -50,7 +50,7 @@ def create_triangle(len_sides: Iterable[float], degrees: Iterable[float] = None)
 
     # 几何学角度转化为坐标系倾角
     dgs = [180 - d for d in dgs]
-    dgs = [sum(dgs[:i]) for i, _ in enumerate(dgs)]
+    dgs = [sum(dgs[:i + 1]) for i, _ in enumerate(dgs)]
     assert abs(dgs[-1] - 360) < 0.05, f'角度差过大，请检查输入参数: {len_sides}, {degrees}'
 
     # 创建三角形
@@ -63,7 +63,7 @@ def create_triangle(len_sides: Iterable[float], degrees: Iterable[float] = None)
     # 但还需要计算第四个顶点，以检查所得形状是否符合要求
     x4 = x3 + math.cos(dgs[1] * math.pi / 180) * sides[2]
     y4 = y3 + math.sin(dgs[1] * math.pi / 180) * sides[2]
-    assert abs(x4) + abs(y4) < max(len_sides) * 0.05, f'计算结果不构成三角形，请检查输入参数: {len_sides}, {degrees}'
+    assert abs(x4) + abs(y4) < max(s for s in len_sides if s is not None) * 0.05, f'计算结果不构成三角形，请检查输入参数: {len_sides}, {degrees}'
 
     return SimplePolygon([(x1, y1), (x2, y2), (x3, y3)])
 
@@ -94,6 +94,7 @@ def _triangle_complete_arguments(sides, dgs):
         ) ** 0.5
     # 正弦定理求角度不可靠（钝角锐角问题），因此统一用余弦定理求角度
     for i, d in enumerate(dgs):
+        if d is not None: continue
         dgs[i] = math.acos(
             (
                sides[i] ** 2 +
@@ -106,17 +107,21 @@ def _triangle_complete_arguments(sides, dgs):
     return sides, dgs
 
 
-def create_polygon(len_sides: Iterable[float], degrees: Iterable[float]) -> Shape:
+def create_polygon(len_sides: Iterable[float], degrees: Iterable[float], ring_close: bool = True) -> Shape:
     """
     由于任意多边形不能简单由边长信息确定，所以必须给全边长和角度的参数
     :param len_sides:   边长数组
     :param degrees:     角度数组
+    :param ring_close:  描述所给轮廓是否包含最后一条边和最后一个角
+                    默认为真，为真时，依路径得到的最后一个点应当和起始点重合
+                    为假时，依路径得到的最后一个点应当与起点不重合
     :return:
     """
     # 几何学角度转化为坐标系倾角
     dgs = [180 - d for d in degrees]
-    dgs = [sum(dgs[:i]) for i, _ in enumerate(dgs)]
-    assert abs(dgs[-1] - 360) < 0.05, f'角度差过大，请检查输入参数: {len_sides}, {degrees}'
+    dgs = [sum(dgs[:i+1]) for i, _ in enumerate(dgs)]
+    if ring_close:
+        assert abs(dgs[-1] - 360) < 5, f'角度差过大，请检查输入参数: {len_sides}, {degrees}'
     dgs.insert(0, 0)
 
     points = [(0, 0)]
@@ -126,6 +131,8 @@ def create_polygon(len_sides: Iterable[float], degrees: Iterable[float]) -> Shap
         y = y0 + math.sin(d * math.pi / 180) * s
         points.append((x, y))
 
-    assert abs(max(points[-1])) < max(len_sides) * 0.05, f'计算结果不符合预期，请检查输入参数: {len_sides}, {degrees}'
-
-    return SimplePolygon(points)
+    if ring_close:
+        assert abs(max(points[-1])) < max(len_sides) * 0.05, f'计算结果不符合预期，请检查输入参数: {len_sides}, {degrees}'
+        return SimplePolygon(points[:-1])
+    else:
+        return SimplePolygon(points)
