@@ -3,12 +3,12 @@ requires = ["setuptools"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools.packages.find]
-include = ["jassor", "jassor.utils"]
+include = ["jassor", "jassor.utils", "jassor.shape"]
 exclude = [".gitignore"]
 
 [project]
 name = "jassor"
-version = "0.2.0"
+version = "0.3.0"
 urls = { project_source = "https://github.com/name-used/jassor" }
 authors = [
     { name = 'jassor', email = 'lq.jassor@gmail.com' }
@@ -20,6 +20,7 @@ license = { text = "GNU LESSER GENERAL PUBLIC LICENSE v3.0" }
 keywords = [
     'jassor',
     'utils',
+    'shape',
 ]
 classifiers = [
     'Intended Audience :: Developers',
@@ -30,4 +31,6 @@ dependencies = [
     'numpy',
     'opencv-python',
     'shapely',
+    'matplotlib',
+    'Pillow',
 ]
