@@ -1,15 +1,15 @@
-from .shapely_impl import *
+from .shapely_impl_complete import *
 
 
 __all__ = [
     'Shape',
+    'EMPTY',
+    'FULL',
     'Region',
     'SingleShape',
-    'ConvexPolygon',
     'SimplePolygon',
     'ComplexPolygon',
     'MultiShape',
-    'ConvexMultiPolygon',
-    'SimpleMultiPolygon',
-    'ComplexMultiPolygon',
+    'MultiSimplePolygon',
+    'MultiComplexPolygon'
 ]

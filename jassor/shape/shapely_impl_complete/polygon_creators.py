@@ -1,0 +1,126 @@
+import math
+from typing import Iterable
+from .definition import Shape
+from .impl_single_simple import SimplePolygon
+
+
+def create_regular_polygon(n: int, len_side: float = None, center_radius: float = None) -> Shape:
+    """
+    创建正 n 边形，优先使用边长，未提供边长时使用外接圆半径，二者均不提供时，默认生成边长为 1 的正 n 边形
+    生成的 n 边形总是中心在原点，且一个顶点在 x 轴上
+    :param n: 边数
+    :param len_side: 边长
+    :param center_radius: 外接圆半径
+    :return: 一个定义为正 n 边形的 Shape
+    """
+    if len_side:
+        # 换算式由 GPT 提供：
+        # calc_side_length = 2 * radius * np.sin(np.pi / n)
+        # radius = side_length / (2 * np.sin(np.pi / n))
+        r = len_side / (2 * math.sin(math.pi / n))
+    else:
+        r = center_radius or 1
+    base_directs = [2 * math.pi / n * i for i in range(n)]
+    base_points = [(math.cos(d), math.sin(d)) for d in base_directs]
+    outer = [(p * r, q * r) for p, q in base_points]
+    return SimplePolygon(outer=outer)
+
+
+def create_triangle(len_sides: Iterable[float], degrees: Iterable[float] = None) -> Shape:
+    """
+    创建三角形，边长与角度不必全给，只需给够满足确定一个三角形的最小需求即可
+    边角序列对应的几何关系是：边1、角1、边2、角2、边3、角3、边1、...
+    生成的三角形第一个顶点总是原点，第一条边总是在 x 轴上
+    :param len_sides: 边长序列，至少要给一个长度，缺失的边长可以用 None 占位
+    :param degrees: 角度序列，若三边长度全给，则可以不提供角度 —— 采用角度制，0 < degree < 180，缺失的角度可以用 None 占位
+    :return:
+    """
+    # 参数标准化
+    sides = list(len_sides)
+    sides.extend([None] * max(0, 3 - len(sides)))
+    dgs = list(degrees or [])
+    dgs.extend([None] * max(0, 3 - len(dgs)))
+    # 补全三边三角
+    sides, dgs = triangle_complete_arguments(sides, dgs)
+
+    # 几何学角度转化为坐标系倾角
+    dgs = [180 - d for d in dgs]
+    dgs = [sum(dgs[:i]) for i, _ in enumerate(dgs)]
+    assert abs(dgs[-1] - 360) < 0.05, f'角度差过大，请检查输入参数: {len_sides}, {degrees}'
+
+    # 创建三角形
+    x1 = y1 = 0
+    x2 = sides[0]
+    y2 = 0
+    # 只有第三个顶点需要计算
+    x3 = x2 + math.cos(dgs[0] * math.pi / 180) * sides[1]
+    y3 = y2 + math.sin(dgs[0] * math.pi / 180) * sides[1]
+    # 但还需要计算第四个顶点，以检查所得形状是否符合要求
+    x4 = x3 + math.cos(dgs[1] * math.pi / 180) * sides[2]
+    y4 = y3 + math.sin(dgs[1] * math.pi / 180) * sides[2]
+    assert abs(x4) + abs(y4) < max(len_sides) * 0.05, f'计算结果不构成三角形，请检查输入参数: {len_sides}, {degrees}'
+
+    return SimplePolygon([(x1, y1), (x2, y2), (x3, y3)])
+
+
+def triangle_complete_arguments(sides, dgs):
+    if dgs.count(None) <= 1:
+        # 有两角，第三角可以直接计算出来
+        if dgs.count(None) == 1:
+            dgs[dgs.index(None)] = 180 - sum(d for d in dgs if d)
+        # 然后用正弦定理补边长
+        p = [s is not None for s in sides].index(True)
+        for i, s in enumerate(sides):
+            if s is not None: continue
+            sides[i] = sides[p] / math.sin(dgs[(p + 1) % 3] * math.pi / 180) * math.sin(dgs[(i + 1) % 3] * math.pi / 180)
+        return sides, dgs
+    # 否则至少有两边
+    if sides.count(None) == 1:
+        # SSA 不能唯一确定三角形，因此只考虑 SAS，条件不满足直接抛错不管
+        assert dgs[(sides.index(None) + 1) % 3] is not None, f'请使用 SSS、AAS、SAS 的方式定义三角形，检查输入参数：{sides}, {dgs}'
+        # 正对角有值，用余弦定理补边长
+        p = [s is not None for s in sides].index(False)
+        sides[p] = (
+            sides[(p + 1) % 3] ** 2 +
+            sides[(p - 1) % 3] ** 2 -
+            2 * sides[(p + 1) % 3] * sides[(p - 1) % 3] * math.cos(
+               dgs[(p + 1) % 3] * math.pi / 180
+            )
+        ) ** 0.5
+    # 正弦定理求角度不可靠（钝角锐角问题），因此统一用余弦定理求角度
+    for i, d in enumerate(dgs):
+        dgs[i] = math.acos(
+            (
+               sides[i] ** 2 +
+               sides[(i + 1) % 3] ** 2 -
+               sides[(i - 1) % 3] ** 2
+            ) / (
+                2 * sides[i] * sides[(i + 1) % 3]
+            )
+        ) * 180 / math.pi
+    return sides, dgs
+
+
+def create_polygon(len_sides: Iterable[float], degrees: Iterable[float]) -> Shape:
+    """
+    由于任意多边形不能简单由边长信息确定，所以必须给全边长和角度的参数
+    :param len_sides:   边长数组
+    :param degrees:     角度数组
+    :return:
+    """
+    # 几何学角度转化为坐标系倾角
+    dgs = [180 - d for d in degrees]
+    dgs = [sum(dgs[:i]) for i, _ in enumerate(dgs)]
+    assert abs(dgs[-1] - 360) < 0.05, f'角度差过大，请检查输入参数: {len_sides}, {degrees}'
+    dgs.insert(0, 0)
+
+    points = [(0, 0)]
+    for s, d in zip(len_sides, dgs):
+        x0, y0 = points[-1]
+        x = x0 + math.cos(d * math.pi / 180) * s
+        y = y0 + math.sin(d * math.pi / 180) * s
+        points.append((x, y))
+
+    assert abs(max(points[-1])) < max(len_sides) * 0.05, f'计算结果不符合预期，请检查输入参数: {len_sides}, {degrees}'
+
+    return SimplePolygon(points)

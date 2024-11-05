@@ -1,5 +1,5 @@
 from abc import ABC
-from typing import TypeVar, Generic, Optional
+from typing import TypeVar, Generic
 from typing import Tuple, Union, List, Any, Iterable
 import io
 

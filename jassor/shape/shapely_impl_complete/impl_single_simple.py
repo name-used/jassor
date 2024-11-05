@@ -5,7 +5,7 @@ from shapely.geometry.base import BaseGeometry
 
 from .definition import Shape, Single, CoordinatesNotLegalException, NoParametersException
 from .impl_single_complex import ComplexPolygon
-import functional as F
+from . import functional as F
 
 
 class SimplePolygon(ComplexPolygon):
@@ -29,8 +29,8 @@ class SimplePolygon(ComplexPolygon):
             reverse: bool = False
     ):
         if geo is not None:
-            assert isinstance(geo, shapely.MultiPolygon), 'geo 必须是 MultiPolygon'
-            assert all(g.boundary.type.upper() == 'LINESTRING' for g in geo.geoms), 'geo 必须是单连通的'
+            assert isinstance(geo, shapely.Polygon), 'geo 必须是 Polygon'
+            assert geo.boundary.geom_type.upper() == 'LINESTRING', 'geo 必须是单连通的'
         elif single is not None:
             assert isinstance(single, Single), 'Multi 类型无法转换为 Single'
             geo = single.geo

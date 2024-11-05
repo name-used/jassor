@@ -5,7 +5,7 @@ from shapely.geometry.base import BaseGeometry
 
 from .definition import Shape, Single, Multi, CoordinatesNotLegalException, NoParametersException
 from .impl_base import Base
-import functional as F
+from . import functional as F
 
 
 class ComplexPolygon(Base, Single):

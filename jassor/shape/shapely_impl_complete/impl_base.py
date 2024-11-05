@@ -7,7 +7,7 @@ from shapely.geometry.base import BaseGeometry
 import shapely.affinity as A
 
 from .definition import Shape, Single, Multi
-import functional as F
+from . import functional as F
 
 
 Position = Union[str, complex, Tuple[float, float]]

@@ -1,6 +1,6 @@
 import json
 import types
-from typing import Any
+from typing import Any, List
 from io import TextIOWrapper
 from pathlib import Path
 from threading import Condition
@@ -82,3 +82,5 @@ class Timer:
 
 def random_colors(n: int, start: tuple[int, int, int] = (47, 81, 177), step: tuple[int, int, int] = (73, 119, 31), rand: tuple[int, int, int] = (10, 10, 10)) -> list[tuple[int, int, int]]: ...
 def random_rainbow_curves(shape: tuple[int, int, int], s: int = 117, k: int = 7, c: int = 50): ...
+def plot(item: Any, title: str = None, window_name: str = 'jassor_plot', save_to: str = None, dpi: int = 1000): ...
+def plots(items: List[Any], titles: List[str] = None, window_name: str = 'jassor_plot', save_to: str = None, dpi: int = 1000): ...

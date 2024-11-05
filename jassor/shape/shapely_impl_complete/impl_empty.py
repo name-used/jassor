@@ -27,10 +27,10 @@ class Empty(Shape):
     def offset(self, pos: Union[complex, Tuple[float, float]]):
         return self
 
-    def scale(self, ratio: float):
+    def scale(self, ratio: float, origin=0j):
         return self
 
-    def rotate(self, degree: float):
+    def rotate(self, degree: float, origin=0j):
         return self
 
     def flip_x(self, a: float):
@@ -41,6 +41,12 @@ class Empty(Shape):
 
     def flip(self, a: float, b: float):
         return self
+
+    def is_joint(self, other) -> bool:
+        return False
+
+    def if_contain(self, other) -> bool:
+        return False
 
     def inter(self, other):
         return self

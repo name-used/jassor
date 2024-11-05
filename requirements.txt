@@ -1,4 +1,5 @@
 numpy~=1.24.3
 opencv-python~=4.10.0.84
-jassor~=0.1.2
 shapely~=2.0.1
+matplotlib~=3.8.4
+Pillow~=10.0.1

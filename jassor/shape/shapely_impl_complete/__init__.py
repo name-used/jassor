@@ -1,23 +1,39 @@
 from .definition import Shape, Single as SingleShape, Multi as MultiShape
-from .impl_multi_convex import ConvexMultiPolygon
-from .impl_multi_simple import SimpleMultiPolygon
-from .impl_multi_complex import ComplexMultiPolygon
-from .impl_single_convex import ConvexPolygon, Region
+from .impl_multi_simple import MultiSimplePolygon
+from .impl_multi_complex import MultiComplexPolygon
+from .impl_region import Region
+from .impl_circle import Circle
 from .impl_single_simple import SimplePolygon
 from .impl_single_complex import ComplexPolygon
 from .impl_empty import Empty
+from .impl_full import Full
 
+
+EMPTY = Shape.EMPTY
+FULL = Shape.FULL
 
 __all__ = [
     'Shape',
     'SingleShape',
     'Region',
-    'ConvexPolygon',
+    'Circle',
     'SimplePolygon',
     'ComplexPolygon',
     'MultiShape',
-    'ConvexMultiPolygon',
-    'SimpleMultiPolygon',
-    'ComplexMultiPolygon',
-    'Empty',
+    'MultiSimplePolygon',
+    'MultiComplexPolygon',
+    'EMPTY',
+    'FULL',
 ]
+
+'''
+关于 shapely 中的类型:
+'Point',
+'LineString',
+'LinearRing',
+'Polygon',
+'MultiPoint',
+'MultiLineString',
+'MultiPolygon',
+'GeometryCollection',
+'''

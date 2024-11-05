@@ -4,7 +4,7 @@ from shapely.geometry.base import BaseGeometry
 
 from .definition import Shape, Single, Multi, NoParametersException, CoordinatesNotLegalException
 from .impl_multi_complex import MultiComplexPolygon
-import functional as F
+from . import functional as F
 
 
 class MultiSimplePolygon(MultiComplexPolygon):
@@ -29,7 +29,7 @@ class MultiSimplePolygon(MultiComplexPolygon):
     ):
         if geo is not None:
             assert isinstance(geo, shapely.MultiPolygon), 'geo 必须是 MultiPolygon'
-            assert all(g.boundary.type.upper() == 'LINESTRING' for g in geo.geoms), 'geo 必须是单连通的'
+            assert all(g.boundary.geom_type.upper() == 'LINESTRING' for g in geo.geoms), 'geo 必须是单连通的'
         elif shapes is not None:
             assert all(isinstance(shape, (Single.SIMPLE, Multi.SIMPLE)) for shape in shapes if shape), 'shapes 必须由 SIMPLE（单连通） 图像构成'
         else:

@@ -24,7 +24,7 @@ class Circle(SimplePolygon):
         if geo is not None or from_p is not None:
             outer = None
         else:
-            base_directs = [math.pi / num * i for i in range(num)]
+            base_directs = [2 * math.pi / num * i for i in range(num)]
             base_points = [(math.cos(d), math.sin(d)) for d in base_directs]
             outer = [(x + p * r, y + q * r) for p, q in base_points]
         super().__init__(outer, geo=geo, from_p=from_p, reverse=reverse)

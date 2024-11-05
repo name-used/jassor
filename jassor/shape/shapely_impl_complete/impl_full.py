@@ -1,9 +1,7 @@
 import io
 from typing import Tuple, Union
 
-from shapely.geometry.base import BaseGeometry
-
-from .definition import Shape, Single, Multi
+from .definition import Shape
 
 
 class Full(Shape):
@@ -29,10 +27,10 @@ class Full(Shape):
     def offset(self, pos: Union[complex, Tuple[float, float]]):
         return self
 
-    def scale(self, ratio: float):
+    def scale(self, ratio: float, origin=0j):
         return self
 
-    def rotate(self, degree: float):
+    def rotate(self, degree: float, origin=0j):
         return self
 
     def flip_x(self, a: float):
@@ -43,6 +41,12 @@ class Full(Shape):
 
     def flip(self, a: float, b: float):
         return self
+
+    def is_joint(self, other) -> bool:
+        return other is not Shape.EMPTY
+
+    def if_contain(self, other) -> bool:
+        return other is not Shape.EMPTY
 
     def inter(self, other):
         return other
