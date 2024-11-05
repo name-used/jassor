@@ -16,4 +16,8 @@ __all__ = [
     'create_triangle',
     'create_regular_polygon',
     'create_sector',
+    'ConvertMulti2SingleException',
+    'load',
+    'loads',
+    'loadb',
 ]

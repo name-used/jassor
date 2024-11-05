@@ -1,4 +1,6 @@
-from typing import Tuple, Union, Optional
+import json
+import pickle
+from typing import Tuple, Union, Optional, IO, List
 import shapely
 from shapely.geometry.base import BaseGeometry
 
@@ -16,13 +18,19 @@ from .definition import Shape, Single, Multi, MIN_AREA
 Position = Union[str, complex, Tuple[float, float]]
 
 
-def inter(self: Shape, other: Shape, reverse: bool) -> Shape:
-    geo = self.geo.intersection(other.geo)
+def inter(*shapes: Shape, reverse: bool) -> Shape:
+    geo = None
+    for shape in shapes:
+        if geo is None: geo = shape.geo
+        else: geo = geo.intersection(shape.geo)
     return norm_multi(geo, reverse=reverse)
 
 
-def union(self: Shape, other: Shape, reverse: bool) -> Shape:
-    geo = self.geo.union(other.geo)
+def union(*shapes: Shape, reverse: bool) -> Shape:
+    geo = None
+    for shape in shapes:
+        if geo is None: geo = shape.geo
+        else: geo = geo.union(shape.geo)
     return norm_multi(geo, reverse=reverse)
 
 
@@ -79,3 +87,30 @@ def norm_geo(geo: BaseGeometry) -> Optional[BaseGeometry]:
         return geo
 
     return None
+
+
+def load(f: IO) -> Shape:
+    return loads(f.readlines())
+
+
+def loads(lines: List[str]) -> Shape:
+    tp = lines[0].strip().upper()
+    if tp == 'EMPTY':
+        return Shape.EMPTY
+    if tp == 'FULL':
+        return Shape.FULL
+    tp = Shape.map_cls(tp)
+    rvs = bool(lines[1])
+    points = json.loads(lines[2])
+    return tp(from_p=points, reverse=rvs)
+
+
+def loadb(f: IO) -> Shape:
+    tp, rvs, points = pickle.load(f)
+    tp = tp.upper()
+    if tp == 'EMPTY':
+        return Shape.EMPTY
+    if tp == 'FULL':
+        return Shape.FULL
+    tp = Shape.map_cls(tp)
+    return tp(from_p=points, reverse=rvs)

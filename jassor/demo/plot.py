@@ -1,5 +1,3 @@
-import traceback
-
 import cv2
 import numpy as np
 import shapely
@@ -11,25 +9,25 @@ import jassor.shape as S
 
 
 def main():
-    # print('第一段程序描述基本用法')
-    # demo1()
-    # input('输入任意字符以继续...')
-    # print('第二段程序描述多类型支持')
-    # demo2()
-    # input('输入任意字符以继续...')
+    print('第一段程序描述基本用法')
+    demo1()
+    input('输入任意字符以继续...')
+    print('第二段程序描述多类型支持')
+    demo2()
+    input('输入任意字符以继续...')
     print('第三段程序描述空值与异常问题')
     demo3()
 
 
 def demo1():
     # 可以一键式的展示单张图片或者多张图片
-    imgs = []
+    images = []
     for i in range(7):
         img = np.zeros((50, 100, 3), dtype=np.uint8)
         cv2.putText(img, str(i), (10, 40), cv2.FONT_HERSHEY_SIMPLEX, 1, [180, 255, 60])
-        imgs.append(img)
-    J.plot(imgs[0], window_name='single_image')
-    J.plots(imgs, window_name='multi_images')
+        images.append(img)
+    J.plot(images[0], window_name='single_image')
+    J.plots(images, window_name='multi_images')
 
 
 def demo2():
@@ -92,9 +90,9 @@ def demo3():
     # coords 错类型
     J.plots([
         [[], []],
-        [[1,], [1,]],   # 只显示点列，不显示孤立点，孤立点可以用 shapely.MultiPoints 显示
-        [[1], [1], [1]],   # 只显示点列，不显示孤立点，孤立点可以用 shapely.MultiPoints 显示
-        [(1, 2, 3), (1, 2, 3), (1, 2, 3)],   # 只显示点列，不显示孤立点，孤立点可以用 shapely.MultiPoints 显示
+        [[1], [1]],  # 只显示点列，不显示孤立点，孤立点可以用 shapely.MultiPoints 显示
+        [[1], [1], [1]],  # 只显示点列，不显示孤立点，孤立点可以用 shapely.MultiPoints 显示
+        [(1, 2, 3), (1, 2, 3), (1, 2, 3)],  # 只显示点列，不显示孤立点，孤立点可以用 shapely.MultiPoints 显示
     ])
 
 

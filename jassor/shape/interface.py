@@ -1,7 +1,6 @@
 from abc import ABC
-from typing import TypeVar, Generic
+from typing import TypeVar, Generic, TextIO, BinaryIO
 from typing import Tuple, Union, List, Any, Iterable
-import io
 
 
 # 定义一个类型变量
@@ -296,20 +295,11 @@ class ShapeInterface(ABC, Generic[T]):
     def __irshift__(self, other: T) -> T:
         return self.remove(other)
 
-    def dump(self, f: io.TextIOWrapper) -> None:
+    def dump(self, f: TextIO) -> None:
         f.write(self.dumps())
 
     def dumps(self) -> str:
         raise NotImplementedError
 
-    def dumpb(self, f: io.BufferedWriter) -> None:
-        raise NotImplementedError
-
-    def load(self, f: io.TextIOWrapper) -> T:
-        return self.loads(f.readlines())
-
-    def loads(self, lines: List[str]) -> T:
-        raise NotImplementedError
-
-    def loadb(self, f: io.BufferedReader) -> T:
+    def dumpb(self, f: BinaryIO) -> None:
         raise NotImplementedError

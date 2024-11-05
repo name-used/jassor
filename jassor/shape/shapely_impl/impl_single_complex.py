@@ -22,7 +22,7 @@ class ComplexPolygon(Base, Single):
     def __init__(
             self,
             outer: List[Tuple[float, float]] = None,
-            *inners: List[Tuple[float, float]],
+            inners: List[List[Tuple[float, float]]] = None,
             geo: BaseGeometry = None,
             single: Single = None,
             from_p: Tuple[

@@ -16,7 +16,7 @@ class Circle(SimplePolygon):
     __slots__ = ()
 
     def __init__(
-            self, x: float, y: float, r: float, num: int = 100,
+            self, x: float = 0, y: float = 0, r: float = 0, num: int = 100,
             geo: BaseGeometry = None,
             from_p: List[Tuple[int, int]] = None,
             reverse: bool = False,

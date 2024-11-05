@@ -1,8 +1,5 @@
 from __future__ import annotations
 import abc
-import io
-import json
-import pickle
 import shapely
 from shapely.geometry.base import BaseGeometry
 from ..interface import ShapeInterface
@@ -37,7 +34,12 @@ class Shape(ShapeInterface['Shape'], abc.ABC):
         return self.geo is not None and not self.geo.is_empty
 
     def __str__(self) -> str:
-        return f'JassorShape:{type(self).__name__} at {self.center} with area {self.area} in region {self.bounds}'
+        tp = type(self).__name__
+        rvs = "neg" if self.reversed else "pos"
+        xy = tuple(round(p, 1) for p in self.center)
+        area = round(self.area, 2)
+        bounds = tuple(round(p, 1) for p in self.bounds)
+        return f'JassorShape:{tp} {rvs} at {xy} with area {area} in region {bounds}'
 
     @property
     def geo(self) -> BaseGeometry:
@@ -54,26 +56,6 @@ class Shape(ShapeInterface['Shape'], abc.ABC):
     # @abc.abstractmethod
     # def clean(self):
     #     raise NotImplementedError
-
-    def loads(self, lines: str) -> Shape:
-        tp = lines[0].upper()
-        if tp == 'EMPTY':
-            return Shape.EMPTY
-        if tp == 'FULL':
-            return Shape.FULL
-        tp = Shape.map_cls(tp)
-        rvs = bool(lines[1])
-        points = json.loads(lines[2])
-        return tp(from_p=points, reverse=rvs)
-
-    def loadb(self, f: io.BufferedReader) -> Shape:
-        tp, rvs, points = pickle.load(f)
-        if tp == 'EMPTY':
-            return Shape.EMPTY
-        if tp == 'FULL':
-            return Shape.FULL
-        tp = Shape.map_cls(tp)
-        return tp(from_p=points, reverse=rvs)
 
     @staticmethod
     def map_cls(tp: str) -> type:

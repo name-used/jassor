@@ -25,7 +25,7 @@ class Base(Shape, ABC):
 
     def offset(self, vector: Position) -> Shape:
         if isinstance(vector, str):
-            assert vector == 'origin', '仅支持 "origin" 作为入参'  # 平移图像直至中心点为原点
+            assert vector == 'center', '仅支持 "center" 作为入参'  # 平移图像直至中心点为原点
             x, y = self.center
             x = -x
             y = -y
@@ -121,7 +121,8 @@ class Base(Shape, ABC):
 
     def union(self, other: Shape) -> Shape:
         # EMPTY 和 FULL 不属于 Base，不会调用此方法，其判别在自己的逻辑内进行即可
-        if other is Shape.EMPTY or other is Shape.FULL: return other.union(self)
+        if other is Shape.EMPTY or other is Shape.FULL:
+            return other.union(self)
         # 依据 reverse 标志决定真实运算
         if not self.reversed and not other.reversed:        # 正 + 正 -> 正常运算 - 并             A | B = A | B
             return F.union(self, other, reverse=False)
@@ -171,7 +172,7 @@ class Base(Shape, ABC):
         # 正形参与 union 运算
         pos_shape = F.union(*pos_shapes, reverse=False)
         # 反形参与 inter 运算
-        neg_shape = F.inter(*neg_shapes, reverse=True)
+        neg_shape = F.inter(*neg_shapes, reverse=True) if neg_shapes else Shape.EMPTY
         # 二者之和即为所求
         return pos_shape.union(neg_shape)
 
@@ -235,13 +236,13 @@ class Base(Shape, ABC):
         return self.cls(geo=self._geo, reverse=self.reversed)
 
     def dumps(self) -> str:
-        tp = self.cls().__name__
+        tp = self.cls.__name__
         rvs = self.reversed
         contour = self.sep_p()
         return f'{tp}\n{rvs}\n{json.dumps(contour)}'
 
     def dumpb(self, f: io.BufferedWriter):
-        tp = self.cls().__name__
+        tp = self.cls.__name__
         rvs = self.reversed
         contour = self.sep_p()
         pickle.dump((tp, rvs, contour), f)
