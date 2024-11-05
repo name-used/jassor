@@ -24,7 +24,7 @@ class ShapeInterface(ABC, Generic[T]):
     1. 坐标运算:
     位移运算 -> offset, 参数 (x, y) 或 x+yj, 占用 左加运算符, 左减运算符 [+, -]
     缩放运算 -> scale, 参数 float, 占用 左乘运算符, 左除运算符 [*, /]     -->> 默认情况下以原点为基准做缩放变换，可以输入关键词 'center'，以轮廓中心为基准做缩放变换
-    * 旋转运算 -> rotate, 参数 float, 占用 左幂运算符 [**]
+    * 旋转运算 -> rotate, 参数 float, 占用 左幂运算符 [**], 逆时针为正
     * 镜像运算 -> flip_x, flip_y, flip, 不占用运算符, 其中:
         flip_x: 入参 x0, 表示以 x=x0 为对称轴做镜像
         flip_y: 入参 y0, 表示以 y=y0 为对称轴做镜像

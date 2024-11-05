@@ -11,5 +11,8 @@ __all__ = [
     'ComplexPolygon',
     'MultiShape',
     'MultiSimplePolygon',
-    'MultiComplexPolygon'
+    'MultiComplexPolygon',
+    'create_polygon',
+    'create_triangle',
+    'create_regular_polygon',
 ]

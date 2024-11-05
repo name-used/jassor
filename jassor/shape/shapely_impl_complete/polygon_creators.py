@@ -7,7 +7,8 @@ from .impl_single_simple import SimplePolygon
 def create_regular_polygon(n: int, len_side: float = None, center_radius: float = None) -> Shape:
     """
     创建正 n 边形，优先使用边长，未提供边长时使用外接圆半径，二者均不提供时，默认生成边长为 1 的正 n 边形
-    生成的 n 边形总是中心在原点，且一个顶点在 x 轴上
+    # 生成的 n 边形总是中心在原点，且一个顶点在 x 轴上
+    生成的三角形第一个顶点总是原点，第一条边总是在 x 轴上
     :param n: 边数
     :param len_side: 边长
     :param center_radius: 外接圆半径
@@ -23,7 +24,11 @@ def create_regular_polygon(n: int, len_side: float = None, center_radius: float 
     base_directs = [2 * math.pi / n * i for i in range(n)]
     base_points = [(math.cos(d), math.sin(d)) for d in base_directs]
     outer = [(p * r, q * r) for p, q in base_points]
-    return SimplePolygon(outer=outer)
+    # return SimplePolygon(outer=outer)
+    shape = SimplePolygon(outer=outer)
+    shape -= (r, 0)
+    shape.rotate(-90 - 360 / n / 2, origin=(0, 0))
+    return shape
 
 
 def create_triangle(len_sides: Iterable[float], degrees: Iterable[float] = None) -> Shape:
@@ -41,7 +46,7 @@ def create_triangle(len_sides: Iterable[float], degrees: Iterable[float] = None)
     dgs = list(degrees or [])
     dgs.extend([None] * max(0, 3 - len(dgs)))
     # 补全三边三角
-    sides, dgs = triangle_complete_arguments(sides, dgs)
+    sides, dgs = _triangle_complete_arguments(sides, dgs)
 
     # 几何学角度转化为坐标系倾角
     dgs = [180 - d for d in dgs]
@@ -63,7 +68,7 @@ def create_triangle(len_sides: Iterable[float], degrees: Iterable[float] = None)
     return SimplePolygon([(x1, y1), (x2, y2), (x3, y3)])
 
 
-def triangle_complete_arguments(sides, dgs):
+def _triangle_complete_arguments(sides, dgs):
     if dgs.count(None) <= 1:
         # 有两角，第三角可以直接计算出来
         if dgs.count(None) == 1:

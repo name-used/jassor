@@ -46,7 +46,7 @@ def plots(items: List[Any], titles: List[str] = None, window_name: str = 'jassor
     fig.canvas.manager.set_window_title(window_name)
     plt.tight_layout()
     if not save_to:
-        plt.show()
+        plt.show(block=True)
     else:
         plt.savefig(save_to, dpi=dpi)
     plt.close(fig=fig)

@@ -7,6 +7,7 @@ from .impl_single_simple import SimplePolygon
 from .impl_single_complex import ComplexPolygon
 from .impl_empty import Empty
 from .impl_full import Full
+from .polygon_creators import create_polygon, create_triangle, create_regular_polygon
 
 
 EMPTY = Shape.EMPTY
@@ -24,6 +25,9 @@ __all__ = [
     'MultiComplexPolygon',
     'EMPTY',
     'FULL',
+    'create_polygon',
+    'create_triangle',
+    'create_regular_polygon',
 ]
 
 '''
