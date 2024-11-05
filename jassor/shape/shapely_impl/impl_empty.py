@@ -1,11 +1,15 @@
+import io
 from typing import Tuple, Union
 
-from shapely.geometry.base import BaseGeometry
-
-from .definition import Shape, Single, Multi
+from .definition import Shape
 
 
-class Empty(Single, Multi):
+class Empty(Shape):
+
+    __slots__ = ()
+
+    def is_valid(self):
+        return True
 
     def buffer(self, distance: float):
         return self
@@ -14,7 +18,7 @@ class Empty(Single, Multi):
         return self
 
     @property
-    def geo(self) -> BaseGeometry:
+    def geo(self):
         return None
 
     def clean(self):
@@ -23,10 +27,10 @@ class Empty(Single, Multi):
     def offset(self, pos: Union[complex, Tuple[float, float]]):
         return self
 
-    def scale(self, ratio: float):
+    def scale(self, ratio: float, origin=0j):
         return self
 
-    def rotate(self, degree: float):
+    def rotate(self, degree: float, origin=0j):
         return self
 
     def flip_x(self, a: float):
@@ -37,6 +41,12 @@ class Empty(Single, Multi):
 
     def flip(self, a: float, b: float):
         return self
+
+    def is_joint(self, other) -> bool:
+        return False
+
+    def if_contain(self, other) -> bool:
+        return False
 
     def inter(self, other):
         return self
@@ -96,19 +106,29 @@ class Empty(Single, Multi):
         return self
 
     def sep_in(self):
-        return [], []
+        return [], [Shape.FULL]
 
     def sep_out(self):
         return []
 
     def sep_p(self):
-        return []
+        raise []
 
     def copy(self):
         return self
 
-    def __len__(self):
-        return 0
+    def comp(self):
+        return Shape.FULL
+
+    @property
+    def reversed(self) -> bool:
+        return False
+
+    def dumps(self) -> str:
+        return 'Empty'
+
+    def dumpb(self, f: io.BufferedWriter):
+        return 'Empty', None, None
 
 
 Shape.EMPTY = Empty()

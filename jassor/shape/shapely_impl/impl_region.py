@@ -1,4 +1,4 @@
-from typing import List, Tuple
+from typing import Tuple
 
 from shapely.geometry.base import BaseGeometry
 

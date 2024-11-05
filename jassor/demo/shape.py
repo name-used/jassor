@@ -8,6 +8,13 @@ import jassor.shape as S
 def main():
     mytest_jshape()
 
+    # jassor.shape
+    s1 = S.Region(0, 0, 100, 100)
+    s2 = S.Region(10, 10, 20, 20)
+    s3 = S.Circle(50, 50, 20)
+    s4 = s1 >> s2 >> s3
+    J.plot(s1 | s2 * 5 + (200, 0) | s4 + (200, 200), window_name='J.shape_2')
+
 
 def mytest_jshape():
     s1 = S.Region(0, 0, 100, 100)

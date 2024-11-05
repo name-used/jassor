@@ -1,6 +1,6 @@
 import json
 
-from jassor.utils import JassorJsonEncoder
+import jassor.utils as J
 
 
 def main():
@@ -50,7 +50,7 @@ def demo2():
     ]
     print(json.dumps(x))  # 没有换行，全挤在一起，什么都看不清楚，不利于阅读
     print(json.dumps(x, indent=4))  # 所有 dict、list 都换行，占用版面过大，也不利于阅读
-    print(json.dumps(x, cls=JassorJsonEncoder))  # 最后一组容器不换行，非最后一组都换行，与上述定义格式相仿，适合阅读
+    print(json.dumps(x, cls=J.JassorJsonEncoder))  # 最后一组容器不换行，非最后一组都换行，与上述定义格式相仿，适合阅读
 
 
 def demo3():
@@ -65,7 +65,7 @@ def demo3():
         }
     ]
     with open('./my_format.json', 'w') as f:
-        json.dump(x, f, cls=JassorJsonEncoder)
+        json.dump(x, f, cls=J.JassorJsonEncoder)
 
 
 def demo4():
@@ -75,14 +75,14 @@ def demo4():
         ['daf', 1, None, 1.2, []],
         ['daf', 1, None, 1.2, {}],
     ]
-    print(json.dumps(x, cls=JassorJsonEncoder))
+    print(json.dumps(x, cls=J.JassorJsonEncoder))
     # x[0] 不换行， x[1]、x[2] 均换行
     # 本工具目前只支持 indent 参数，且默认为 4，且不支持 indent=None 或 0
-    print(json.dumps(x, indent=16, cls=JassorJsonEncoder))
+    print(json.dumps(x, indent=16, cls=J.JassorJsonEncoder))
     # 无论哪种格式，都可以正常读回来，且读出时不依赖本工具库
-    print(x == json.loads(json.dumps(x, cls=JassorJsonEncoder)))
+    print(x == json.loads(json.dumps(x, cls=J.JassorJsonEncoder)))
     # True
-    print(x == json.loads(json.dumps(x, indent=16, cls=JassorJsonEncoder)))
+    print(x == json.loads(json.dumps(x, indent=16, cls=J.JassorJsonEncoder)))
     # True
 
 

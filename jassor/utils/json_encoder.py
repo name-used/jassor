@@ -19,8 +19,8 @@ class JassorJsonEncoder(json.JSONEncoder):
             end = '\n' + ' ' * self._count + '}'
             self._count += self._indent
             head = '{\n' + ' ' * self._count
-            transer = lambda kv: f'"{str(kv[0])}": {self.encode(kv[1])}'
-            content = f',\n{" " * self._count}'.join(map(transer, obj.items()))
+            transformer = lambda kv: f'"{str(kv[0])}": {self.encode(kv[1])}'
+            content = f',\n{" " * self._count}'.join(map(transformer, obj.items()))
             self._count -= self._indent
             json_str = head + content + end
         elif isinstance(obj, (list, tuple)):

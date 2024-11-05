@@ -2,6 +2,7 @@ import math
 from typing import Iterable
 from .definition import Shape
 from .impl_single_simple import SimplePolygon
+from .impl_circle import Circle
 
 
 def create_regular_polygon(n: int, len_side: float = None, center_radius: float = None) -> Shape:
@@ -136,3 +137,22 @@ def create_polygon(len_sides: Iterable[float], degrees: Iterable[float], ring_cl
         return SimplePolygon(points[:-1])
     else:
         return SimplePolygon(points)
+
+
+def create_sector(radius: float, degree: float, num: int = 100) -> Shape:
+    """
+    创建一个扇形
+    :param radius:  扇形所对应圆的半径
+    :param degree:  扇形所对应圆心角
+    :param num:     描述扇形所用轮廓点数
+    :return:
+    """
+    # 入参矫正检查
+    if abs(degree) < 0.05: return Shape.EMPTY
+    if abs(degree) >= 360: return Circle(0, 0, radius, num)
+    # 角度值换弧度制
+    angle = degree * math.pi / 180
+    base_directs = [angle / num * i for i in range(num + 1)]
+    base_points = [(math.cos(d), math.sin(d)) for d in base_directs]
+    outer = [(0., 0.)] + [(p * radius, q * radius) for p, q in base_points]
+    return SimplePolygon(outer=outer)

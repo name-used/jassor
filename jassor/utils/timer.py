@@ -42,7 +42,7 @@ class TimerManager(object):
         return r
 
     @staticmethod
-    def regist_container(key: str, container: Dict[str, float]):
+    def register_container(key: str, container: Dict[str, float]):
         TimerManager.register[key] = container
 
 

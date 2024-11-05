@@ -1,7 +1,6 @@
-import json
 import numpy as np
 import matplotlib.pyplot as plt
-from jassor.utils import Merger
+import jassor.utils as J
 
 
 def main():
@@ -33,7 +32,7 @@ def demo1():
     # 创建融合器并融合
     for index, steep in enumerate([1, 2, 3, 4]):
         # 对图片来说，高斯模糊只应用在
-        merger = Merger(temp=(150, 150, 3), kernel=(100, 100, 1), dtype=np.float32, steep=steep)
+        merger = J.Merger(temp=(150, 150, 3), kernel=(100, 100, 1), dtype=np.float32, steep=steep)
         for x, g in zip(xs, gs):
             merger.set(x, g)
         result = merger.tail().round().astype(np.uint8)
@@ -52,7 +51,7 @@ def demo2():
     g1 = (0,)
     g2 = (3,)
     # float16 只能支撑到 1e-7 的精度
-    merger = Merger(temp=(10,), kernel=(6,), dtype=np.float16, eps=1e-7)
+    merger = J.Merger(temp=(10,), kernel=(6,), dtype=np.float16, eps=1e-7)
     merger.set(x1, g1)
     merger.set(x2, g2)
     result = merger.tail()
@@ -64,7 +63,7 @@ def demo3():
     # temp.shape.length == kernel.shape.length
     # kernel 为 1 的维度，融合时应用广播机制，在该维度上不受高斯核影响
     # 一般的，kernel 至少应当在某一个维度非 1，否则高斯核将完全失去作用
-    merger = Merger(temp=(2, 3, 4, 5, 6, 7, 8), kernel=(1, 1, 1, 3, 1, 1, 1))
+    merger = J.Merger(temp=(2, 3, 4, 5, 6, 7, 8), kernel=(1, 1, 1, 3, 1, 1, 1))
     # 贴片时，patch 与 temp 长度一致的维度数，grid 坐标置 None 即可
     # 在 kernel 长度非 1 的维度数上，patch 的长度必须与 kernel 保持一致
     merger.set(patch=np.zeros((2, 3, 1, 3, 1, 2, 3)), grid=(None, None, 0, 1, 2, 3, 4))

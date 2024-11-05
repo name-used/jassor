@@ -2,7 +2,7 @@ import time
 import traceback
 from typing import Iterable
 
-from jassor.utils import Process, Queue, Closed
+import jassor.utils as J
 
 
 def main():
@@ -14,9 +14,9 @@ def main():
 
 
 def demo1():
-    que = Queue(5)
-    pa = Process(target=producer, args=(que, [x+1 for x in range(10)]))
-    pb = Process(target=consumer, args=(que, ))
+    que = J.Queue(5)
+    pa = J.Process(target=producer, args=(que, [x+1 for x in range(10)]))
+    pb = J.Process(target=consumer, args=(que, ))
     pa.start()
     pb.start()
     pa.join()
@@ -29,9 +29,9 @@ def demo1():
 
 
 def demo2():
-    que = Queue(5)
-    pa = Process(target=producer, args=(que, [x for x in range(10)]))
-    pb = Process(target=consumer, args=(que, ))
+    que = J.Queue(5)
+    pa = J.Process(target=producer, args=(que, [x for x in range(10)]))
+    pb = J.Process(target=consumer, args=(que, ))
     # 为正常展示异常结束的情况，令消费者先执行代码并卡定在 que.pop 部分
     # 以免生产者报错太快导致消费者直接在 while 阶段退出
     pb.start()
@@ -42,7 +42,7 @@ def demo2():
     print(que.is_end())
 
 
-def producer(que: Queue, stream: Iterable):
+def producer(que: J.Queue, stream: Iterable):
     try:
         for data in stream:
             que.push({'cmd': 'do_process', 'arg': None, 'data': 1 / data})
@@ -54,7 +54,7 @@ def producer(que: Queue, stream: Iterable):
         que.end(flag=True, message=f'exception caused by {e}')
 
 
-def consumer(que: Queue):
+def consumer(que: J.Queue):
     while not que.is_end():
         try:
             item = que.pop()
@@ -62,7 +62,7 @@ def consumer(que: Queue):
                 print(f'normal que message {que.message()}')
             elif item['cmd'] == 'do_process':
                 print(item['data'])
-        except Closed:
+        except J.Closed:
             print('exception que message', que.message())
 
 

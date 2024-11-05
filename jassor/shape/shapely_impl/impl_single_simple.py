@@ -1,10 +1,11 @@
 from typing import List, Tuple
-from shapely.geometry.base import BaseGeometry
-from shapely.geometry.geo import Polygon as StandardPolygon
 
-from .definition import Shape, Single
+import shapely
+from shapely.geometry.base import BaseGeometry
+
+from .definition import Shape, Single, CoordinatesNotLegalException, NoParametersException
 from .impl_single_complex import ComplexPolygon
-from .shapely_utils import boundary2coords
+from . import functional as F
 
 
 class SimplePolygon(ComplexPolygon):
@@ -17,41 +18,58 @@ class SimplePolygon(ComplexPolygon):
     当 polygon 是 ComplexPolygon 时, 忽视其内轮廓
     """
 
+    __slots__ = ()
+
     def __init__(
             self,
             outer: List[Tuple[float, float]] = None,
             geo: BaseGeometry = None,
             single: Single = None,
+            from_p: List[Tuple[float, float]] = None,
+            reverse: bool = False
     ):
-        if single is not None:
+        if geo is not None:
+            assert isinstance(geo, shapely.Polygon), 'geo 必须是 Polygon'
+            assert geo.boundary.geom_type.upper() == 'LINESTRING', 'geo 必须是单连通的'
+        elif single is not None:
             assert isinstance(single, Single), 'Multi 类型无法转换为 Single'
-            single = single.outer
-        elif geo is not None:
-            assert isinstance(geo, StandardPolygon), 'geo 必须是 Polygon'
-            assert geo.boundary.type.upper() == 'LINESTRING', 'boundary 必须是 lineString'
-        super().__init__(outer=outer, geo=geo, single=single)
+            geo = single.geo
+        elif from_p is not None:
+            outer = from_p
+            geo = shapely.Polygon(shell=outer, holes=[])
+        elif outer is not None:
+            # 对用户输入进行检查和修复
+            geo = shapely.Polygon(shell=outer, holes=[])
+            geo = F.norm_geo(geo)
+            # 创建时要求轮廓必须合法
+            if geo is None or isinstance(geo, shapely.MultiPolygon):
+                raise CoordinatesNotLegalException(f'creating single polygon with geo=={type(geo)}')
+            # 还得是单连通的
+            if bool(geo.interiors):
+                raise CoordinatesNotLegalException(f'SimplePolygon not allowed interiors coordinates with geo interiors nums: {len(geo.interiors)}')
+        else:
+            # 没有任何参数的话，要报个错
+            raise NoParametersException(f'Any of such parameters have to be provided: outer, geo, single, from_p')
+        super().__init__(None, geo=geo, single=None, from_p=None, reverse=reverse)
 
     @property
     def outer(self) -> Single:
         # 外轮廓(正形)
-        return self.copy()
+        return Single.SIMPLE(geo=self.geo)
 
     @property
     def inner(self) -> Shape:
         # 内轮廓(负形)
         return Shape.EMPTY
 
-    def sep_in(self) -> Tuple[List[Single], List[Single]]:
-        # 内分解
-        return [self.copy()], []
-
     def sep_out(self) -> List[Single]:
         # 外分解
-        return [self.copy()]
+        return [Single.SIMPLE(geo=self.geo)]
 
-    def sep_p(self) -> List[Tuple[int, int]]:
+    def sep_p(self) -> List[Tuple[float, float]]:
         # 点分解
-        return boundary2coords(self.geo.boundary)[0]
+        outer = list(shapely.get_exterior_ring(self.geo).coords)
+        return outer
 
     @property
     def cls(self) -> type:

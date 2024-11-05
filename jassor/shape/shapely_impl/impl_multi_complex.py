@@ -1,13 +1,14 @@
 from typing import List, Tuple, Iterable
+
+import shapely
 from shapely.geometry.base import BaseGeometry
-from shapely.geometry.geo import MultiPolygon as StandardMultiPolygon
-from shapely.geometry.geo import Polygon as StandardPolygon
 
-from .definition import Shape, Single, Multi
+from .definition import Shape, Single, Multi, NoParametersException, CoordinatesNotLegalException
 from .impl_base import Base
+from . import functional as F
 
 
-class ComplexMultiPolygon(Base, Multi):
+class MultiComplexPolygon(Base, Multi):
     """
     多-复连通多边形, 创建方式有五:
     1. 指定 outers
@@ -26,23 +27,34 @@ class ComplexMultiPolygon(Base, Multi):
 
             geo: BaseGeometry = None,
 
-            singles: Iterable[Single] = None,
+            shapes: Iterable[Shape] = None,
 
-            multi: Multi = None,
+            from_p: Tuple[
+                List[List[Tuple[float, float]]],    # outers
+                List[List[Tuple[float, float]]],    # inners
+                List[List[Tuple[float, float]]],    # adjacencies
+            ] = None,
+            reverse: bool = False,
     ):
-        if multi is not None:
-            assert isinstance(multi, Multi), '将 Simple 转化为 Multi 请通过 singles 指定'
-            geo = multi.geo
-        elif singles is not None:
-            coords = [Single.asComplex(single).sep_p() for single in singles if single.is_valid()]
-            if len(coords) == 1:
-                geo = StandardPolygon(shell=coords[0][0], holes=coords[0][1])
-            else:
-                geo = StandardMultiPolygon(polygons=coords)
-        elif geo is not None:
-            assert isinstance(geo, StandardMultiPolygon), 'geo 必须是 MultiPolygon'
+        if geo is not None:
+            assert isinstance(geo, shapely.MultiPolygon), 'geo 必须是 MultiPolygon'
+        elif shapes is not None:
+            assert not any(shape.reversed for shape in shapes), '创建 MultiPolygon 时只能采用正形描述'
+            geoms = []
+            for shape in shapes:
+                if not shape: continue
+                if isinstance(shape, Single):
+                    geoms.append(shape.geo)
+                elif isinstance(shape, Multi):
+                    geoms.extend(geo for geo in shape.geo.geoms if isinstance(geo, shapely.Polygon))
+            geo = shapely.MultiPolygon(polygons=geoms)
         else:
-            assert outers is not None, 'Parameters could not be all empty!'
+            if from_p is not None:
+                outers, inners, adjacencies = from_p
+            if outers is None:
+                # 没有任何参数的话，要报个错
+                raise NoParametersException(f'Any of such parameters have to be provided: (outer, *inners), geo, single, from_p')
+
             if inners is None and adjacencies is None:
                 coords = [(outer, []) for outer in outers]
             else:
@@ -51,50 +63,40 @@ class ComplexMultiPolygon(Base, Multi):
                     (outer, [inner for j, inner in enumerate(inners) if adjacencies[j] == i])
                     for i, outer in enumerate(outers)
                 ]
-            geo = StandardMultiPolygon(polygons=coords)
-        super().__init__(geo=geo)
+            # 对用户输入进行检查和修复
+            geo = shapely.MultiPolygon(polygons=coords)
+            geo = F.norm_geo(geo)
+            # 创建时要求轮廓必须合法
+            if geo is None:
+                raise CoordinatesNotLegalException(f'creating single polygon with geo=={type(geo)}')
+            elif isinstance(geo, shapely.Polygon):
+                geo = shapely.MultiPolygon(polygons=[geo])
 
-    def merge(self, other: Shape) -> Multi:
-        # 合集运算
-        if not other: return Multi.asComplex(self)
-        geo = self.geo
-        singles = other.sep_out()
-        geos = [s.geo for s in singles if not geo.disjoint(s.geo)]
-        for g in geos:
-            geo = geo.union(g)
-        multi = self.__norm_multi__(geo)
-        return ComplexMultiPolygon(multi=multi)
+        super().__init__(geo=geo, reverse=reverse)
 
     @property
     def outer(self) -> Multi:
         # 外轮廓(正形)
-        return Multi.SIMPLE(singles=self.sep_in()[0])
+        outer_geos = [shapely.Polygon(g.exterior.coords) for g in self.geo.geoms]
+        geo = shapely.MultiPolygon(outer_geos)
+        return Multi.SIMPLE(geo=geo)
 
     @property
     def inner(self) -> Multi:
         # 内轮廓(负形)
-        inners = self.sep_in()[1]
-        if not inners: return Multi.EMPTY
-        return Multi.SIMPLE(singles=inners)
+        inner_boundaries = [list(g.interiors) for g in self.geo.geoms]
+        inner_boundaries = sum(inner_boundaries, [])
+        geos = [shapely.Polygon(b.coords) for b in inner_boundaries]
+        geo = shapely.MultiPolygon(polygons=geos)
+        return Multi.SIMPLE(geo=geo)
 
-    def sep_in(self) -> Tuple[List[Single], List[Single]]:
+    def sep_in(self) -> Tuple[Multi, Multi]:
         # 内分解
-        # 逐层分解 (规避由 shapely 任意性引起的荒诞错误)
-        singles = [Single.COMPLEX(geo=g) for g in self.geo.geoms if isinstance(g, StandardPolygon)]
-        singles = [s for s in singles if s.is_valid()]
-        outers = []
-        inners = []
-        for s in singles:
-            o, i = s.sep_in()
-            outers.extend(o)
-            inners.extend(i)
-        return outers, inners
+        return self.outer, self.inner
 
     def sep_out(self) -> List[Single]:
         # 外分解
-        singles = [Single.COMPLEX(geo=g) for g in self.geo.geoms if isinstance(g, StandardPolygon)]
-        singles = [s for s in singles if s.is_valid()]
-        return singles
+        return [Single.COMPLEX(geo=g) for g in self.geo.geoms]
 
     def sep_p(self) -> Tuple[
         List[List[Tuple[int, int]]],
@@ -102,9 +104,7 @@ class ComplexMultiPolygon(Base, Multi):
         List[int]
     ]:
         # 点分解
-        # 逐层分解 (规避由 shapely 任意性引起的荒诞错误)
-        singles = [Single.COMPLEX(geo=g) for g in self.geo.geoms if isinstance(g, StandardPolygon)]
-        singles = [s for s in singles if s.is_valid()]
+        singles = [Single.COMPLEX(geo=g) for g in self.geo.geoms]
         outers = []
         inners = []
         adjacencies = []
@@ -117,7 +117,7 @@ class ComplexMultiPolygon(Base, Multi):
 
     @property
     def cls(self) -> type:
-        return ComplexMultiPolygon
+        return MultiComplexPolygon
 
 
-Multi.COMPLEX = ComplexMultiPolygon
+Multi.COMPLEX = MultiComplexPolygon

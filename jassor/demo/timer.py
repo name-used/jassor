@@ -1,6 +1,6 @@
 import time
 import multiprocessing
-from jassor.utils import Timer, TimerManager
+import jassor.utils as J
 
 
 def main():
@@ -15,7 +15,7 @@ def main():
 
 
 def demo1():
-    T = TimerManager()
+    T = J.TimerManager()
     # 使用 with 块语法统计代码用时
     with T['demo1_1']:
         wait(0.2)
@@ -31,7 +31,7 @@ def demo1():
         # 可以用于非高频循环代码
         for i in range(100_000):
             with T['demo1_3']:
-                x = i ** 6
+                _ = i ** 6
     # 统计和显示用时
     for name, cost in T.costs.items():
         print(f' -> mission[{name}] cost time [{T.stamp(cost)}]')
@@ -39,11 +39,11 @@ def demo1():
 
 def demo2():
     container = {}
-    TimerManager.regist_container('share', container)
+    J.TimerManager.register_container('share', container)
     # 使用注解方式统计用时时，应当在 TimerManager 中注册计时容器
     # 以下两种方式均可使用
     # T = TimerManager(container=container)
-    T = TimerManager(container='share')
+    T = J.TimerManager(container='share')
     with T['demo2_1']:
         wait(0.1)
     my_wait()
@@ -57,7 +57,7 @@ def demo2():
 def demo3():
     share = multiprocessing.Manager().dict()
     group = []
-    T = TimerManager(container=share)
+    T = J.TimerManager(container=share)
     with T['demo3_all']:
         for i in range(20):
             key = str(i) if i < 10 else 'same'
@@ -69,10 +69,10 @@ def demo3():
             g.join()
     # time.sleep(1)
     for name, cost in share.items():
-        print(f' -> mission[{name}] cost time [{TimerManager.stamp(cost)}]')
+        print(f' -> mission[{name}] cost time [{J.TimerManager.stamp(cost)}]')
 
 
-@Timer(key='demo2_2', container='share')
+@J.Timer(key='demo2_2', container='share')
 def my_wait():
     # 使用注解方式统计用时
     wait(0.2)
@@ -80,7 +80,7 @@ def my_wait():
 
 def my_process(key: str, t: float, share: dict):
     # 需要注意的是，多进程时间统计效率较低，且不能保证准确性
-    T = TimerManager(container=share)
+    T = J.TimerManager(container=share)
     with T[f'demo3_{key}']:
         wait(t)
         # 大量进程同时写入共享变量会引起幻觉现象，此现象建议在编程中避免，本工具不予解决

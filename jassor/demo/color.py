@@ -1,6 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
-from jassor.utils import random_rainbow_curves, random_colors
+import jassor.utils as J
 
 
 def main():
@@ -12,7 +12,7 @@ def main():
 
 
 def demo1():
-    x = random_colors(100)
+    x = J.random_colors(100)
     x = np.array(x)
     x = x.reshape((10, 10, 3))
     plt.imshow(x)
@@ -20,7 +20,7 @@ def demo1():
 
 
 def demo2():
-    x = random_rainbow_curves((500, 500, 3), s=101)
+    x = J.random_rainbow_curves((500, 500, 3), s=101)
     plt.imshow(x)
     plt.show()
 

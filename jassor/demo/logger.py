@@ -2,8 +2,7 @@ import time
 from typing import TextIO
 import sys
 import multiprocessing
-from jassor.utils import Logger
-from jassor.utils.logger import IOWrapper
+import jassor.utils as J
 
 
 def main():
@@ -15,7 +14,7 @@ def main():
 
 
 def demo1():
-    L = Logger(level=Logger.DEBUG)
+    L = J.Logger(level=J.Logger.DEBUG)
     # 按级别决定是否输出日志
     L.step('message 1')
     L.debug('message 2')
@@ -36,28 +35,28 @@ def demo1():
 
 def demo2():
     # file 可以是任意 TextIO
-    L = Logger(file=sys.stderr)
+    L = J.Logger(file=sys.stderr)
     L.info('message')
     L.close()
     # 下列两种方式等价
-    L = Logger(file='./log1.txt')
+    L = J.Logger(file='./log1.txt')
     L.info('message')
     L.close()
     with open('./log2.txt', 'a') as f:
-        L = Logger(file=f)
+        L = J.Logger(file=f)
         L.info('message')
         L.close()
-    # 下对于更一般的管道，用 IOWrapper 包装一下依旧可以输出
+    # 对于更一般的管道，用 IOWrapper 包装一下依旧可以输出
     receiver, sender = multiprocessing.Pipe(False)
-    sender = IOWrapper(write_func=sender.send, flush_func=None, close_func=sender.close)
-    process = multiprocessing.Process(target=test, args=(sender,))
+    sender = J.IOWrapper(write_func=sender.send, flush_func=None, close_func=sender.close)
+    process = multiprocessing.Process(target=subprocess, args=(sender,))
     process.start()
     process.join()
     print(receiver.recv())
 
 
-def test(pipe: TextIO):
-    L = Logger(file=pipe)
+def subprocess(pipe: TextIO):
+    L = J.Logger(file=pipe)
     L.info('sender message')
     L.close()
 

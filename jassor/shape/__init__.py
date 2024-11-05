@@ -1,4 +1,4 @@
-from .shapely_impl_complete import *
+from .shapely_impl import *
 
 
 __all__ = [
@@ -15,4 +15,5 @@ __all__ = [
     'create_polygon',
     'create_triangle',
     'create_regular_polygon',
+    'create_sector',
 ]

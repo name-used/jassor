@@ -27,7 +27,7 @@ class Merger(object):
         self._kernel = kernel
         # kernel 中维度数为 1 视为需要广播，helper 中置为 1 即可
         # 否则视为需要贴片，按照 temp 的维度数来设置
-        helper_shape = tuple(1 if k==1 else t for k, t in zip(kernel.shape, temp.shape))
+        helper_shape = tuple(1 if k == 1 else t for k, t in zip(kernel.shape, temp.shape))
         self._helper = np.zeros(shape=helper_shape, dtype=dtype) + eps
 
     @staticmethod
