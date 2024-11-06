@@ -34,16 +34,13 @@ def demo2():
     # ndarray
     p1 = np.zeros((50, 150, 3), dtype=np.uint8)
     cv2.putText(p1, 'ndarray', (10, 40), cv2.FONT_HERSHEY_SIMPLEX, 1, [180, 255, 60])
-
     # PIL.Image
     p2 = np.zeros((50, 200, 3), dtype=np.uint8)
     cv2.putText(p2, 'PIL.Image', (10, 40), cv2.FONT_HERSHEY_SIMPLEX, 1, [180, 255, 60])
     p2 = Image.fromarray(p2)
-
     # coords
     p3 = [(1, 1), (3, 1), (2, 2)]
     p4 = [[1, 3, 2], [1, 1, 2]]
-
     J.plots([p1, p2, p3, p4], window_name='numpy,image,coords')
 
     # shapely
@@ -66,7 +63,7 @@ def demo2():
     js3 = S.create_triangle([3, None, None], [90, None, 60])
     js4 = S.create_polygon(len_sides=[2, 1, 1, 1.414], degrees=[90, 90, 135, 45])
     js5 = S.create_polygon(len_sides=[2, 1, 1], degrees=[90, 90, 135], ring_close=False)
-    js6 = S.create_sector(1, 1)
+    js6 = S.create_sector(1, 30)
     J.plots([js1, js2, js3, js4, js5, js6], window_name='J.shape_1')
 
 

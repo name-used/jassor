@@ -68,7 +68,7 @@ def _plot_item(ax: Axes, item: Any) -> Any:
         # ndarray 必须是 (h, w, (1, 3, 4)) 或 (h, w)
         if len(item.shape) not in (2, 3) or min(item.shape) == 0:
             return ax.imshow(_draw_empty(f'only (h, w, c) or (h, w) are supported, got {item.shape}'))
-        if len(item.shape) == 3:
+        if len(item.shape) == 3 and item.shape[2] not in (1, 3, 4):
             return ax.imshow(_draw_empty(f'allowed color-type in GRAY, RGB, RGBA, got {item.shape}'))
         return ax.imshow(Image.fromarray(item))
 
