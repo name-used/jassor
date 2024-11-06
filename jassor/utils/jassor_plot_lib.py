@@ -83,19 +83,38 @@ def _plot_item(ax: Axes, item: Any) -> Any:
 
     if isinstance(item, List):
         # 点列类
-        if len(item) > 2 and len(item[0]) == 2:
-            # [(x, y)]
-            xs, ys = zip(*item)
-            return ax.plot(xs, ys)
-        if len(item) == 2 and len(item[0]) > 2:
-            # [xs, ys]
-            xs, ys = item
-            return ax.plot(xs, ys)
         shape = []
-        while item and isinstance(item, (List, Tuple)) and len(item)>0:
-            shape.append(len(item))
-            item = item[0]
-        return ax.imshow(_draw_empty(f'Only support formats like [(x, y)] or [xs, ys], must num > 2, got shape=={shape}'))
+        it = item
+        while it and isinstance(it, (List, Tuple)) and len(it)>0:
+            shape.append(len(it))
+            it = it[0]
+            if isinstance(it, np.ndarray):
+                shape += it.shape
+                break
+        # [contour]
+        if len(shape) not in (2, 3):
+            return ax.imshow(_draw_empty(f'Only support contour or contours shape (c, n, 2) or (c, 2, n), got shape=={shape}'))
+
+        try:
+            if len(shape) == 2:
+                item = [item]
+            for contour in item:
+                # [(x, y)]
+                if len(contour) > 2 and len(contour[0]) == 2:
+                    xs, ys = zip(*contour)
+                    ax.plot(xs, ys)
+                    continue
+                # [xs, ys]
+                if len(contour) == 2 and len(contour[0]) > 2:
+                    xs, ys = contour
+                    ax.plot(xs, ys)
+                    continue
+                ax.clear()
+                return ax.imshow(_draw_empty(f'Only support contour shape (n, 2) or (2, n), got {len(contour), len(contour[0])}'))
+            return
+        except BaseException as e:
+            ax.clear()
+            return ax.imshow(_draw_empty(f'Exception while transing coords, see: {e}'))
 
     if hasattr(item, 'geo'):
         item = item.geo

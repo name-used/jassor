@@ -9,14 +9,14 @@ import jassor.shape as S
 
 
 def main():
-    print('第一段程序描述基本用法')
-    demo1()
-    input('输入任意字符以继续...')
-    print('第二段程序描述多类型支持')
+    # print('第一段程序描述基本用法')
+    # demo1()
+    # input('输入任意字符以继续...')
+    # print('第二段程序描述多类型支持')
     demo2()
-    input('输入任意字符以继续...')
-    print('第三段程序描述空值与异常问题')
-    demo3()
+    # input('输入任意字符以继续...')
+    # print('第三段程序描述空值与异常问题')
+    # demo3()
 
 
 def demo1():
@@ -41,7 +41,9 @@ def demo2():
     # coords
     p3 = [(1, 1), (3, 1), (2, 2)]
     p4 = [[1, 3, 2], [1, 1, 2]]
-    J.plots([p1, p2, p3, p4], window_name='numpy,image,coords')
+    p5 = [[(1, 1), (3, 1), (2, 2)], [(11, 11), (13, 11), (12, 12)]]
+    p6 = [[[1, 3, 2], [1, 1, 2]], [[11, 13, 12], [11, 11, 12]]]
+    J.plots([p1, p2, p3, p4, p5, p6], window_name='numpy,image,coords')
 
     # shapely
     s1 = shapely.Point((1, 1))
