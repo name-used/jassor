@@ -31,8 +31,8 @@ class Queue(object):
     """
     def __init__(self, maxsize: int = 0):
         self._top = True
-        self._con = multiprocessing.Condition()
-        self._que = multiprocessing.Queue(maxsize=maxsize)
+        self._con = multiprocessing.Manager().Condition()
+        self._que = multiprocessing.Manager().Queue(maxsize=maxsize)
         # 状态： 0, 1, 2
         # 0: 异常中止
         # 1: 正常运行
