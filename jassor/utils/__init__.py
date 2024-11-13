@@ -13,6 +13,7 @@ my_modules = {
     'random_rainbow_curves': '.color',
     'plot': '.jassor_plot_lib',
     'plots': '.jassor_plot_lib',
+    'Table': '.table',
 }
 
 

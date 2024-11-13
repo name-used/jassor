@@ -9,14 +9,14 @@ import jassor.shape as S
 
 
 def main():
-    # print('第一段程序描述基本用法')
-    # demo1()
-    # input('输入任意字符以继续...')
-    # print('第二段程序描述多类型支持')
+    print('第一段程序描述基本用法')
+    demo1()
+    input('输入任意字符以继续...')
+    print('第二段程序描述多类型支持')
     demo2()
-    # input('输入任意字符以继续...')
-    # print('第三段程序描述空值与异常问题')
-    # demo3()
+    input('输入任意字符以继续...')
+    print('第三段程序描述空值与异常问题')
+    demo3()
 
 
 def demo1():

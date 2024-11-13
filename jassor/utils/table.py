@@ -52,10 +52,12 @@ class Table(object):
     table = Table.loads(table_str)
     table = Table.load(TextIO)
     table = Table.loadb(BinaryIO)
+
+    特别注意的是：在 Table 中, table[0: 2] 视为选取三项：[0, 1, 2], 即，Table 的区间两端包含
     """
 
     def __init__(self, *dimensions: Union[List[str], Dict[str, str]],
-                 dtype: Union[np.dtype, type] = object,
+                 dtype: type = object,
                  data: np.ndarray = None,
                  key_sep: str = '-',
                  k_v_sep: str = ': ',):
@@ -75,25 +77,30 @@ class Table(object):
         self.key_index_map = [{key: i for i, key in enumerate(dim_key)} for dim_key in self.dim_keys]
         self.name_index_map = [{name: i for i, name in enumerate(dim_name)} for dim_name in self.dim_names]
 
-        self.data = np.empty(shape=self.size_in_dims, dtype=dtype) if data is None else data
+        self._data = np.empty(shape=self.size_in_dims, dtype=dtype) if data is None else data
+
+    @property
+    def data(self) -> np.ndarray:
+        return self._data
 
     def __getitem__(self, items):
-        select_indexes_in_dim, grids = self.trans_item_args(items)
-        selected_data = self.data[grids]
-        if all(isinstance(g, int) for g in grids):
-            return selected_data.item()
+        select_indexes_in_dim, grids = self._trans_item_args(items)
+        selected_data = self._data[grids]
+        if all(isinstance(g, int) for g in select_indexes_in_dim):
+            # 四个都是专指，就是取元素值
+            return selected_data if self._data.dtype == object else selected_data.item()
         else:
-            return self.sub_table(select_indexes_in_dim, selected_data)
+            return self._sub_table(select_indexes_in_dim, selected_data)
 
     def __setitem__(self, items, value):
-        select_indexes_in_dim, grids = self.trans_item_args(items)
-        self.data[grids] = value
+        select_indexes_in_dim, grids = self._trans_item_args(items)
+        self._data[grids] = value
 
     def __str__(self):
-        return '{\n' + self.str(type_repr=repr).replace('\n', '\n\t') + '\n}'
+        return '{\n\t' + self.str(type_repr=repr).replace('\n', '\n\t') + '\n}'
 
-    def dump(self, f: TextIO):
-        f.write(self.dumps())
+    def dump(self, f: TextIO, type_repr: callable = repr):
+        f.write(self.dumps(type_repr=type_repr))
 
     def dumpb(self, f: BinaryIO):
         dimensions = [
@@ -101,12 +108,15 @@ class Table(object):
             for dim_key, dim_name in zip(self.dim_keys, self.dim_names)
         ]
         pickle.dump({
+            'k-v-sep': self.k_v_sep,
+            'key-sep': self.key_sep,
             'dimensions': dimensions,
-            'data': self.data,
+            'data': self._data,
         }, f)
 
     def dumps(self, type_repr: callable = repr):
-        dtype = f'dtype[{self.data.dtype}]'
+        rank = f'rank[{self.rank}]'
+        dtype = f'dtype[{self._data.dtype}]'
         kv_sep = f'k-v-sep[{self.k_v_sep}]'
         key_sep = f'key-sep[{self.key_sep}]'
         dimensions = [
@@ -114,7 +124,7 @@ class Table(object):
             for dim_key, dim_name in zip(self.dim_keys, self.dim_names)
         ]
         content = self.str(type_repr=type_repr)
-        return f'{dtype}\n{kv_sep}\n{key_sep}\n' + '\n'.join([json.dumps(dimension) for dimension in dimensions]) + content
+        return f'{rank}\n{dtype}\n{kv_sep}\n{key_sep}\n\n' + '\n'.join([json.dumps(dimension) for dimension in dimensions]) + '\n\n' + content
 
     def str(self, type_repr: callable) -> str:
         dim_keys = [[(index, key) for index, key in enumerate(dim_key)] for dim_key in self.dim_keys]
@@ -127,7 +137,7 @@ class Table(object):
             for items in cartesian
         ]
         lines = [
-            f'{self.key_sep.join(keys)}{self.k_v_sep}{type_repr(self.data[tuple(indexes)])}'
+            f'{self.key_sep.join(keys)}{self.k_v_sep}{type_repr(self._data[tuple(indexes)])}'
             for indexes, keys in cartesian
         ]
         return '\n'.join(lines)
@@ -139,7 +149,7 @@ class Table(object):
     @staticmethod
     def loadb(f: BinaryIO):
         data = pickle.load(f)
-        return Table(*data['dimensions'], data=data['data'])
+        return Table(*data['dimensions'], data=data['data'], k_v_sep=data['k-v-sep'], key_sep=data['key-sep'])
 
     @staticmethod
     def loads(lines: List[str], type_loader: callable = json.loads):
@@ -148,26 +158,30 @@ class Table(object):
             line = line.strip()
             if not line: continue
             # 前三行是表头，接下来一行是维度定义，再往后是数据项
-            if line.startwith('dtype[') and line.endwith(']'):
-                head['dtype'] = line[line.find('[') + 1:-1]
-            elif line.startwith('k-v-sep[') and line.endwith(']'):
+            if line.startswith('rank[') and line.endswith(']'):
+                head['rank'] = int(line[line.find('[') + 1:-1])
+            elif line.startswith('dtype[') and line.endswith(']'):
+                head['dtype'] = np.dtype(line[line.find('[') + 1:-1])
+            elif line.startswith('k-v-sep[') and line.endswith(']'):
                 head['kv_sep'] = line[line.find('[') + 1:-1]
-            elif line.startwith('key-sep') and line.endwith(']'):
+            elif line.startswith('key-sep') and line.endswith(']'):
                 head['key_sep'] = line[line.find('[') + 1:-1]
             else:
-                head['dimensions'] = json.loads(''.join(lines[head_pos]))
+                head['dimensions'] = [
+                    json.loads(lines[pos]) for pos in range(head_pos, head_pos + head['rank'])
+                ]
                 head['head_pos'] = head_pos
                 break
         assert all(v in head for v in ['dtype', 'head_pos', 'kv_sep', 'key_sep', 'rank', 'dimensions'])
 
         # 现在，是时候加载数据了
         table = Table(
-            **head['dimensions'],
-            dtype=np.dtype(head['dtype']),
+            *head['dimensions'],
+            dtype=head['dtype'],
             key_sep=head['key_sep'],
             k_v_sep=head['kv_sep'],
         )
-        for line in lines[head['head_pos'] + 1]:
+        for line in lines[head['head_pos'] + head['rank']:]:
             line = line.strip()
             if not line: continue
             keys, value = line.split(head['kv_sep'])
@@ -177,13 +191,16 @@ class Table(object):
             table[tuple(keys)] = value
         return table
 
-    def trans_item_args(self, items):
+    def _trans_item_args(self, items):
         # 先将输入规范化为元组
         if not isinstance(items, tuple):
             items = items,
-        # 然后补齐缺失轴
-        if len(items) < self.rank:
-            items = *items, *(slice(None) for _ in range(self.rank - len(items)))
+        # 然后补齐缺失轴(检查 Ellipsis)
+        if len(items) < self.rank and items[-1] != Ellipsis:
+            items = *items, Ellipsis
+        if any(item == Ellipsis for item in items):
+            pos = items.index(Ellipsis)
+            items = *items[:pos], *(slice(None) for _ in range(self.rank - len(items) + 1)), *items[pos+1:]
         # 然后逐项翻译
         select_indexes_in_dim = []
         for dim_index, item in enumerate(items):
@@ -194,48 +211,50 @@ class Table(object):
             if item is None:
                 item = slice(None)
             if isinstance(item, int) or isinstance(item, str):
-                select = self.trans(dim_index, item, 0)
+                select = self._trans(dim_index, item, 0)
             elif isinstance(item, Iterable):
-                select = self.trans_iter(dim_index, item)
+                select = self._trans_iter(dim_index, item)
             elif isinstance(item, slice):
-                select = self.trans_slice(dim_index, item)
+                select = self._trans_slice(dim_index, item)
             else:
                 raise KeyError(f'Not supported type: {type(item)}')
             # assert bool(select), f'Select nothing is meaningless! Check dim_index[{dim_index}] val[{item}]'
             select_indexes_in_dim.append(select)
-        grids = self.select(select_indexes_in_dim)
+
+        grids = self._select(select_indexes_in_dim)
         return select_indexes_in_dim, grids
 
-    def trans(self, dim_index: int, item: Union[int, str], default: int) -> int:
+    def _trans(self, dim_index: int, item: Union[int, str], default: int) -> int:
         if item is None: return default
         if isinstance(item, int): return item
         if item in self.key_index_map[dim_index]: return self.key_index_map[dim_index][item]
         assert item in self.name_index_map[dim_index], KeyError(f'Key "{item}" not in dim_index-{dim_index}')
         return self.name_index_map[dim_index][item]
 
-    def trans_slice(self, dim_index: int, item: slice) -> tuple:
-        start = self.trans(dim_index, item.start, 0)
-        stop = self.trans(dim_index, item.stop, self.size_in_dims[dim_index])
-        step = self.trans(dim_index, item.step, 1)
-        return tuple(range(start, stop, step))
+    def _trans_slice(self, dim_index: int, item: slice) -> tuple:
+        start = self._trans(dim_index, item.start, 0)
+        stop = self._trans(dim_index, item.stop, self.size_in_dims[dim_index] - 1)
+        step = self._trans(dim_index, item.step, 1)
+        return tuple(range(start, stop + 1, step))
 
-    def trans_iter(self, dim_index: int, items: Iterable) -> tuple:
-        return tuple(self.trans(dim_index, item, 0) for item in items)
+    def _trans_iter(self, dim_index: int, items: Iterable) -> tuple:
+        return tuple(self._trans(dim_index, item, 0) for item in items)
 
     @staticmethod
-    def select(select_indexes_in_dim: List[Tuple[int]]) -> Tuple[np.ndarray]:
-        # # 若索引指定唯一元素，则按单元素索引元组格式返回坐标
-        # if all(len(index) == 1 for index in indexes):
-        #     return tuple(index[0] for index in indexes)
-        # # 若维度数少于2，可以直接返回
-        # if len(indexes) < 2:
-        #     return tuple(indexes)
-        # 否则先生成网格矩阵
-        grids: List[np.ndarray] = np.meshgrid(*select_indexes_in_dim, indexing='ij')
-        # 然后返回 grid
-        return tuple(grids)
+    def _select(select_indexes_in_dim: List[Tuple[int]]) -> Tuple[Union[np.ndarray, int], ...]:
+        # 这里只区分两种情况：要么给定一组数值，则使用 meshgrid，要么给定一个数值，则直接留用
+        grids: List[np.ndarray] = np.meshgrid(*[indexes for indexes in select_indexes_in_dim if isinstance(indexes, tuple)], indexing='ij')
+        next_grids = iter(grids)
+        return tuple(next(next_grids) if isinstance(indexes, tuple) else indexes for indexes in select_indexes_in_dim)
 
-    def sub_table(self, select_indexes_in_dim: List[Tuple[int]], selected_data: np.ndarray):
+    def _sub_table(self, select_indexes_in_dim: List[Tuple[int]], selected_data: np.ndarray):
+        keys_list = [
+            # 从命名空间中选取相关命名
+            [self.dim_keys[dim_index][index] for index in select_indexes]
+            for dim_index, select_indexes in enumerate(select_indexes_in_dim)
+            # 如果某一个维度里选定了一个确定的维度数，那就没必要保留这个维度的名称了，所以用 tuple 过滤， tuple 表示多选
+            if isinstance(select_indexes, tuple)
+        ]
         names_list = [
             # 从命名空间中选取相关命名
             [self.dim_names[dim_index][index] for index in select_indexes]
@@ -243,4 +262,4 @@ class Table(object):
             # 如果某一个维度里选定了一个确定的维度数，那就没必要保留这个维度的名称了，所以用 tuple 过滤， tuple 表示多选
             if isinstance(select_indexes, tuple)
         ]
-        return Table(*names_list, data=selected_data)
+        return Table(*[dict(zip(keys, names)) for keys, names in zip(keys_list, names_list)], data=selected_data)
