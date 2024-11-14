@@ -14,6 +14,7 @@ my_modules = {
     'plot': '.jassor_plot_lib',
     'plots': '.jassor_plot_lib',
     'Table': '.table',
+    'uniform_iter': '.iter_method',
 }
 
 
@@ -22,7 +23,7 @@ def __getattr__(name):
         module = importlib.import_module(my_modules[name], __package__)
         return getattr(module, name)
     else:
-        raise ModuleNotFoundError('你脑瓜子被驴踢啦，我才没有这个方法呢，你给我检查清楚了再 import')
+        raise ModuleNotFoundError(f'The import name {name} not in this utils, check if want to import {list(my_modules.keys())}')
 
 
 __all__ = list(my_modules)

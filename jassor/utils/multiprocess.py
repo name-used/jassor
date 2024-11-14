@@ -1,6 +1,6 @@
 from typing import TypeVar
 from queue import Empty, Full
-import multiprocessing
+from torch import multiprocessing
 
 
 V = TypeVar('V')
