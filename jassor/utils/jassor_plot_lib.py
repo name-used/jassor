@@ -1,14 +1,18 @@
-import math
-from typing import List, Any, Iterable, Tuple
-import shapely
-from PIL import Image
 import matplotlib
+matplotlib.use('TkAgg')  # 好像只有这个支持
+import math
+from typing import List, Any, Tuple
+from PIL import Image
 from matplotlib.axes import Axes
-matplotlib.use('TkAgg')     # 好像只有这个支持
 import matplotlib.pyplot as plt
+import importlib.util
 import cv2
 import numpy as np
-from shapely.geometry.base import BaseGeometry
+
+shapely_ok = importlib.util.find_spec('shapely') is not None
+if shapely_ok:
+    import shapely
+    from shapely.geometry.base import BaseGeometry
 
 
 def plot(item: Any, title: str = None, window_name: str = 'jassor_plot', save_to: str = None, dpi: int = 1000):
@@ -22,7 +26,7 @@ def plot(item: Any, title: str = None, window_name: str = 'jassor_plot', save_to
     fig.canvas.manager.set_window_title(window_name)
     plt.tight_layout()
     if not save_to:
-        plt.show()
+        plt.show(block=True)
     else:
         plt.savefig(save_to, dpi=dpi)
     plt.close(fig=fig)
@@ -69,8 +73,10 @@ def _plot_item(ax: Axes, item: Any) -> Any:
         if len(item.shape) not in (2, 3) or min(item.shape) == 0:
             return ax.imshow(_draw_empty(f'only (h, w, c) or (h, w) are supported, got {item.shape}'))
         if len(item.shape) == 3 and item.shape[2] not in (1, 3, 4):
+
             return ax.imshow(_draw_empty(f'allowed color-type in GRAY, RGB, RGBA, got {item.shape}'))
-        return ax.imshow(Image.fromarray(item))
+        # return ax.imshow(Image.fromarray(item))
+        return ax.imshow(item)
 
     if not bool(item):
         return ax.imshow(_draw_empty(f'item:{item}'))
@@ -119,7 +125,7 @@ def _plot_item(ax: Axes, item: Any) -> Any:
     if hasattr(item, 'geo'):
         item = item.geo
 
-    if isinstance(item, BaseGeometry):
+    if shapely_ok and isinstance(item, BaseGeometry):
         l, u, r, d = list(map(float, item.bounds))
         ax.set_xticks([l, r])
         ax.set_yticks([u, d])
