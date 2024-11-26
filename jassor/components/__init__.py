@@ -1,1 +1,6 @@
-from .blind_mark import Marker
+from . import blind_mark as Marker
+
+
+__all__ = [
+    'Marker'
+]

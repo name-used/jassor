@@ -1,74 +1,57 @@
+from typing import Union
 import cv2
 import numpy as np
 from scipy.fftpack import dct, idct
 
+k = 8
 
-class Marker:
-    def __init__(self, width: int, height: int, u: np.ndarray = None, v: np.ndarray = None):
-        self.width = width
-        self.height = height
-        self.u = u if u is not None else np.linalg.qr(np.random.randn(height, height))[0].astype(np.float32)
-        self.v = v if v is not None else np.linalg.qr(np.random.randn(width, width))[0].astype(np.float32)
-        self.data = None
-        self.cache_dct = None
 
-    def image(self, image: np.ndarray):
-        self.data = cv2.resize(image, (self.width, self.height))
-        return self
+def map_to(img_in: np.ndarray):
+    """
+    将给定图像映射到目标域上
+    :param img_in: uint8 图像
+    :return: dct 图像
+    """
+    h, w = img_in.shape
+    H = h + -h % k
+    W = w + -w % k
+    image = np.zeros(shape=(H, W), dtype=np.uint8)
+    image[:h, :w] = img_in
+    # 数据空间变换 [0, 255] -> [0.5, 255.5] -> (-1, 1) -> (-∞, +∞)
+    image = (image.astype(np.float64) + 0.5 - 128) / 128
+    image = np.tan(image * np.pi / 2)
 
-    def mark(self, mark: np.ndarray):
-        self.data = mark
-        return self
+    # 对每个块进行 DCT 变换, 变换中留存主值
+    result = np.zeros_like(image, dtype=np.float32)
+    for i in range(0, H, k):
+        for j in range(0, W, k):
+            block = image[i:i + k, j:j + k]
+            block = dct(dct(block.T, norm='ortho').T, norm='ortho')
+            # block = u @ block @ v
+            result[i:i + k, j:j + k] = block
+    return result
 
-    def item(self) -> np.ndarray:
-        return self.data
 
-    def map(self):
-        if self.data is not None:
-            self.data = np.tan((self.data - 0.5) * np.pi)
-        return self
+def imap_to(img_in: np.ndarray):
+    """
+    将给定目标域图像映射回 uint8
+    :param img_in: dct 图像
+    :return: uint8 图像
+    """
+    h, w = img_in.shape
+    H = h + -h % k
+    W = w + -w % k
+    image = np.zeros(shape=(H, W), dtype=np.float32)
+    image[:h, :w] = img_in
+    result = np.zeros_like(image, dtype=np.float32)
+    for i in range(0, H, k):
+        for j in range(0, W, k):
+            block = image[i:i + k, j:j + k]
+            # block = u.T @ block @ v.T
+            block = idct(idct(block.T, norm='ortho').T, norm='ortho')
+            result[i:i + k, j:j + k] = block
 
-    def imap(self):
-        if self.data is not None:
-            self.data = np.arctan(self.data) / np.pi + 0.5
-        return self
-
-    def cross(self):
-        if self.data is not None:
-            self.data = self.u @ self.data @ self.v
-        return self
-
-    def icross(self):
-        if self.data is not None:
-            self.data = self.u.T @ self.data @ self.v.T
-        return self
-
-    def dct(self, k: int = 8, t: int = 0):
-        if self.data is not None:
-            self.cache_dct = {}
-            # 对每个块进行 DCT 变换, 变换中留存主值
-            dct_matrix = np.zeros_like(self.data)
-            for i in range(0, self.height - k + 1, k):
-                for j in range(0, self.width - k + 1, k):
-                    block = self.data[i:i + k, j:j + k]
-                    block = dct(dct(block.T, norm='ortho').T, norm='ortho')
-                    if t > 0:
-                        self.cache_dct[(i, j)] = block[:t, :t].copy()
-                        # block[:t, :t] = 0
-                    dct_matrix[i:i + k, j:j + k] = block
-            self.data = dct_matrix
-        return self
-
-    def idct(self, k: int = 8, t: int = 0):
-        if self.data is not None:
-            # 对每个块进行 DCT 变换, 变换中留存主值
-            idct_matrix = np.zeros_like(self.data)
-            for i in range(0, self.height - k + 1, k):
-                for j in range(0, self.width - k + 1, k):
-                    block = self.data[i:i + k, j:j + k]
-                    if t > 0:
-                        block[:t, :t] = self.cache_dct[(i, j)]
-                    block = idct(idct(block.T, norm='ortho').T, norm='ortho')
-                    idct_matrix[i:i + k, j:j + k] = block
-            self.data = idct_matrix
-        return self
+    # 数据空间变换 [0, 255] -> [0.5, 255.5] -> (-1, 1) -> (-∞, +∞)
+    result = np.arctan(result) * 2 / np.pi
+    result = (result * 128 + 128).astype(np.uint8)
+    return result
