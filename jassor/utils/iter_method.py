@@ -26,6 +26,3 @@ def uniform_iter(T_len: int, I_len: int, max_gap: int) -> List[int]:
 
     # 步长数 + 原窗口0计数 => 总迭代量
     return [round(step * i) for i in range(count + 1)]
-
-
-print(uniform_iter(30, 5, 3))
