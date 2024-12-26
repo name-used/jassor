@@ -15,6 +15,7 @@ my_modules = {
     'plots': '.jassor_plot_lib',
     'Table': '.table',
     'uniform_iter': '.iter_method',
+    'crop': '.cropper',
 }
 
 
