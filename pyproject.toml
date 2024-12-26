@@ -21,6 +21,7 @@ keywords = [
     'jassor',
     'utils',
     'shape',
+    'image',
 ]
 classifiers = [
     'Intended Audience :: Developers',
@@ -33,4 +34,9 @@ dependencies = [
     'shapely',
     'matplotlib',
     'Pillow',
+]
+
+[tool.setuptools.optional-dependencies]
+inference = [
+    'onnxruntime',
 ]

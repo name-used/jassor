@@ -1,6 +1,7 @@
 import importlib
 my_modules = {
     'Marker': '.blind_mark',
+    'Masking': '.create_mask',
 }
 
 
