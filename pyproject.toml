@@ -8,7 +8,7 @@ exclude = [".gitignore"]
 
 [project]
 name = "jassor"
-version = "0.4.3"
+version = "0.5.0"
 urls = { project_source = "https://github.com/name-used/jassor" }
 authors = [
     { name = 'jassor', email = 'lq.jassor@gmail.com' }
@@ -39,4 +39,6 @@ dependencies = [
 [tool.setuptools.optional-dependencies]
 inference = [
     'onnxruntime',
+    'scipy',
+    'skimage',
 ]

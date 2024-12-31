@@ -1,0 +1,13 @@
+from typing import Union
+from pathlib import Path
+import numpy
+
+ndarray = numpy.ndarray
+
+def get_human(image: ndarray, onnx_path: Union[str, Path] = './modnet_human_detect.onnx') -> ndarray: ...
+
+def get_none_gray(image: ndarray, alpha: float = 1., s1: int = 9, s2: int = 5) -> ndarray: ...
+
+def get_edge(image: ndarray, s: int = 9, score_thresh: float = 0.012) -> ndarray: ...
+
+# def get_valid_area(image: ndarray) -> ndarray: ...

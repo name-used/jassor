@@ -1,13 +1,22 @@
+import sys
 import os.path
 from typing import Union
 from pathlib import Path
-
+import urllib.request
 import cv2
 import numpy as np
 import onnxruntime
 
 
-def inference(onnx_path: Union[str, Path], image: np.ndarray) -> np.ndarray:
+# 来自 modnet 的权重
+# 仓库地址：https://github.com/ZHKKKe/MODNet
+# 权重地址：https://drive.google.com/drive/folders/1umYmlCulvIFNaqPjwod1SayFmSRHziyR
+# 使用 Apache 2.0 协议
+# 谷歌云使用动态链接，所以此处将权重上传至 github 仓库
+target_uri = 'https://raw.githubusercontent.com/name-used/jassor/refs/heads/master/resources/modnet_photographic_portrait_matting.onnx'
+
+
+def process(image: np.ndarray, onnx_path: Union[str, Path] = './modnet_human_detect.onnx') -> np.ndarray:
     if not os.path.exists(onnx_path):
         download_checkpoint(onnx_path)
     session = onnxruntime.InferenceSession(onnx_path, None)
@@ -15,7 +24,7 @@ def inference(onnx_path: Union[str, Path], image: np.ndarray) -> np.ndarray:
     output_name = session.get_outputs()[0].name
     result = session.run([output_name], {input_name: transpose(image)})
     matte = (np.squeeze(result[0]) * 255).astype('uint8')
-    im_h, im_w, im_c = image.shape
+    im_h, im_w = image.shape[:2]
     matte = cv2.resize(matte, dsize=(im_w, im_h), interpolation=cv2.INTER_AREA)
     return matte
 
@@ -69,4 +78,13 @@ def get_scale_factor(im_h, im_w, ref_size):
 
 
 def download_checkpoint(path: Union[str, Path]):
-    pass
+    dirname = os.path.dirname(path)
+    if not os.path.exists(dirname):
+        os.makedirs(dirname)
+    try:
+        sys.stderr.write(f'start download modnet weights from {target_uri}\n')
+        sys.stderr.write(f'for more information see https://github.com/ZHKKKe/MODNet\n')
+        urllib.request.urlretrieve(target_uri, path)
+        sys.stderr.write(f'download success in path {path}\n')
+    except Exception as e:
+        sys.stderr.write(f'modnet weights download failed, please check network\n')
