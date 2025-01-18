@@ -262,4 +262,4 @@ class Table(object):
             # 如果某一个维度里选定了一个确定的维度数，那就没必要保留这个维度的名称了，所以用 tuple 过滤， tuple 表示多选
             if isinstance(select_indexes, tuple)
         ]
-        return Table(*[dict(zip(keys, names)) for keys, names in zip(keys_list, names_list)], data=selected_data)
+        return Table(*[dict(zip(keys, names)) for keys, names in zip(keys_list, names_list)], data=selected_data, key_sep=self.key_sep, k_v_sep=self.k_v_sep)
