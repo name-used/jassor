@@ -9,9 +9,7 @@
 ### 第三方依赖
 
 - 本项目依赖于 [**numpy**](https://github.com/numpy/numpy), 该仓库引用的协议是 [BSD 3-Clause License](https://opensource.org/license/BSD-3-Clause) ，您可以在 ```./licenses/LICENSE_BSD.txt``` 看到它。
-
 - 本项目依赖于 [**opencv**](https://github.com/opencv/opencv), 该仓库引用的协议是 [Apache License 2.0](https://www.apache.org/licenses/LICENSE-2.0) ，您可以在 ```./licenses/LICENSE_APACHE.txt``` 看到它。
-
 - 本项目依赖于 [**shapely**](https://github.com/shapely/shapely), 该仓库引用的协议是 [BSD 3-Clause License](https://opensource.org/license/BSD-3-Clause) ，您可以在 ```./licenses/LICENSE_BSD.txt``` 看到它。
 
 ## 二、结构

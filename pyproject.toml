@@ -41,4 +41,8 @@ dev = [
     'onnxruntime',
     'scipy',
     'skimage',
+    'PyQt5',
+    'openslide',
+    'tifffile',
+    'tiffslide',
 ]
