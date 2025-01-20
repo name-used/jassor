@@ -26,3 +26,4 @@ def sample_image(image: np.ndarray, kernel_size: int, step: int):
 
 def sample_slide(slide: Slide, kernel_size: int, step: int, base_mpp_or_downsample: float, ):
     pass
+check_slide, check_image, Slide
