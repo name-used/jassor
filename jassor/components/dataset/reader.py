@@ -3,6 +3,9 @@ from typing import Union
 from pathlib import Path
 import numpy as np
 from PIL import Image
+from reader_numpy import NumpySlide
+from reader_image import ImageSlide
+
 
 SlideType = None
 try:
@@ -23,19 +26,11 @@ except ImportError:
 def load(path: Union[str, Path]):
     _, ext = os.path.splitext(path)
     if ext in ('.png', '.jpg', 'jpeg'):
-        return ImageLoader(Image.open(path).convert('RGB'))
+        return ImageSlide(Image.open(path).convert('RGB'))
     if ext in ('.tif', '.svs'):
         if SlideType is None:
             raise ImportError('Lib Imported Failed!')
-        return Slide(path, type=SlideType)
+        return SlideType(path)
+    if ext in ('.numpy',):
+        return NumpySlide(np.load(path))
     raise TypeError(f'File type not supported! {ext}')
-
-
-class ImageLoader:
-    def __init__(self, image: Image.Image):
-        self.image = np.asarray(image)
-
-
-class SlideLoader:
-    def __init__(self, image: Image.Image):
-        self.image = np.asarray(image)
