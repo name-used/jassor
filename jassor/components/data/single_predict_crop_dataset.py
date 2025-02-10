@@ -5,17 +5,18 @@ import numpy as np
 import torch
 from .interface import Reader
 from .reader import load
-from reader_numpy import NumpySlide
-from reader_image import ImageSlide
+from .reader_numpy import NumpySlide
+from .reader_image import ImageSlide
 
 
 class SingleDataset(torch.utils.data.Dataset):
     """
     单图预测任务
     """
-    def __init__(self, source: Union[str, Path, np.ndarray], samples: List[Tuple[int, int, int, int]]):
+    def __init__(self, source: Union[str, Path, np.ndarray, Image.Image], samples: List[Tuple[int, int, int, int, int]]):
         super().__init__()
         self.source = source
+        # [(level, left, up, right, down)]
         self.samples = samples
 
     def __len__(self):

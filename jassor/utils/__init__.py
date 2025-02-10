@@ -16,8 +16,8 @@ my_modules = {
     'Table': '.table',
     'uniform_iter': '.iter_method',
     'crop': '.cropper',
-    'SlideWriter': '.slide_writer',
-    'image2slide': '.tiff_writer',
+    'SlideWriter': '.writer_asap',
+    'image2slide': '.writer_tiff',
 }
 
 

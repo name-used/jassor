@@ -1,13 +1,13 @@
 from typing import Tuple, Union
 from pathlib import Path
 import numpy as np
-import openslide
+import tiffslide
 from .interface import Reader, num
 
 
-class Slide(Reader):
+class TiffSlide(Reader):
     def __init__(self, path: Union[str, Path]):
-        self.slide = openslide.OpenSlide(path)
+        self.slide = tiffslide.TiffSlide(path)
 
     @property
     def level_count(self) -> int:
@@ -15,7 +15,7 @@ class Slide(Reader):
 
     @property
     def base_mpp(self) -> float:
-        return float(self.slide.properties['openslide.mpp-x'])
+        return float(self.slide.properties['tiffslide.mpp-x'])
 
     def dimension(self, level: int = 0) -> Tuple[int, int]:
         return self.slide.level_dimensions[level]

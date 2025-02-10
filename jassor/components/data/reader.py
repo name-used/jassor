@@ -3,21 +3,21 @@ from typing import Union
 from pathlib import Path
 import numpy as np
 from PIL import Image
-from reader_numpy import NumpySlide
-from reader_image import ImageSlide
+from .reader_numpy import NumpySlide
+from .reader_image import ImageSlide
 
 
 SlideType = None
 try:
-    from reader_openslide import OpenSlide
+    from .reader_openslide import OpenSlide
     SlideType = OpenSlide
 except ImportError:
     try:
-        from reader_asap import AsapSlide
+        from .reader_asap import AsapSlide
         SlideType = AsapSlide
     except ImportError:
         try:
-            from reader_tiff import TiffSlide
+            from .reader_tiff import TiffSlide
             SlideType = TiffSlide
         except ImportError:
             pass

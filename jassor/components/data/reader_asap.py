@@ -1,27 +1,27 @@
 from typing import Tuple, Union
 from pathlib import Path
 import numpy as np
-import tiffslide
+import multiresolutionimageinterface as mir
 from .interface import Reader, num
 
 
-class Slide(Reader):
+class AsapSlide(Reader):
     def __init__(self, path: Union[str, Path]):
-        self.slide = tiffslide.TiffSlide(path)
+        self.slide = mir.MultiResolutionImageReader().open(path)
 
     @property
     def level_count(self) -> int:
-        return self.slide.level_count
+        return self.slide.getNumberOfLevels()
 
     @property
     def base_mpp(self) -> float:
-        return float(self.slide.properties['tiffslide.mpp-x'])
+        return float(self.slide.getProperty('openslide.mpp-x'))
 
     def dimension(self, level: int = 0) -> Tuple[int, int]:
-        return self.slide.level_dimensions[level]
+        return self.slide.getLevelDimensions(level)
 
     def downsample(self, level: int = 0) -> float:
-        return self.slide.level_downsamples[level]
+        return self.slide.getLevelDownsample(level)
 
     def region(self, level: int, left: num, up: num, right: num, down: num) -> np.ndarray:
         downsample = self.downsample(level)
@@ -29,5 +29,5 @@ class Slide(Reader):
         u0 = round(up * downsample)
         w = round(right - left)
         h = round(down - up)
-        patch = self.slide.read_region(location=(l0, u0), level=level, size=(w, h))
-        return np.asarray(patch)
+        patch = self.slide.getUCharPatch(startX=l0, startY=u0, width=w, height=h, level=level)
+        return patch

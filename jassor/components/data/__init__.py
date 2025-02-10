@@ -1,7 +1,7 @@
 from .interface import Reader
 from .reader import load
 from .single_predict_crop_dataset import SingleDataset
-from .utils import trans_norm, trans_linear, sample_image
+from .utils import trans_norm, trans_linear, sample_image, sample_slide
 
 
 __all__ = [
@@ -11,4 +11,5 @@ __all__ = [
     'trans_norm',
     'trans_linear',
     'sample_image',
+    'sample_slide',
 ]

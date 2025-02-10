@@ -1,27 +1,27 @@
 from typing import Tuple, Union
 from pathlib import Path
 import numpy as np
-import multiresolutionimageinterface as mir
+import openslide
 from .interface import Reader, num
 
 
-class Slide(Reader):
+class OpenSlide(Reader):
     def __init__(self, path: Union[str, Path]):
-        self.slide = mir.MultiResolutionImageReader().open(path)
+        self.slide = openslide.OpenSlide(path)
 
     @property
     def level_count(self) -> int:
-        return self.slide.getNumberOfLevels()
+        return self.slide.level_count
 
     @property
     def base_mpp(self) -> float:
-        return float(self.slide.getProperty('openslide.mpp-x'))
+        return float(self.slide.properties['openslide.mpp-x'])
 
     def dimension(self, level: int = 0) -> Tuple[int, int]:
-        return self.slide.getLevelDimensions(level)
+        return self.slide.level_dimensions[level]
 
     def downsample(self, level: int = 0) -> float:
-        return self.slide.getLevelDownsample(level)
+        return self.slide.level_downsamples[level]
 
     def region(self, level: int, left: num, up: num, right: num, down: num) -> np.ndarray:
         downsample = self.downsample(level)
@@ -29,5 +29,5 @@ class Slide(Reader):
         u0 = round(up * downsample)
         w = round(right - left)
         h = round(down - up)
-        patch = self.slide.getUCharPatch(startX=l0, startY=u0, width=w, height=h, level=level)
-        return patch
+        patch = self.slide.read_region(location=(l0, u0), level=level, size=(w, h))
+        return np.asarray(patch)
