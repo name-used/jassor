@@ -3,14 +3,14 @@ import json
 import pickle
 from abc import ABC
 from typing import Tuple, Union, Iterable
+
+import shapely
 from shapely.geometry.base import BaseGeometry
 import shapely.affinity as A
 
 from .definition import Shape, Single, Multi
 from . import functional as F
-
-
-Position = Union[str, complex, Tuple[float, float]]
+from ..interface import Position, PositionDescriber
 
 
 class Base(Shape, ABC):
@@ -23,7 +23,7 @@ class Base(Shape, ABC):
     def comp(self) -> None:
         self._reversed = not self._reversed
 
-    def offset(self, vector: Position) -> Shape:
+    def offset(self, vector: PositionDescriber) -> Shape:
         if isinstance(vector, str):
             assert vector == 'center', '仅支持 "center" 作为入参'  # 平移图像直至中心点为原点
             x, y = self.center
@@ -34,7 +34,7 @@ class Base(Shape, ABC):
         self._geo = A.translate(self._geo, x, y)
         return self
 
-    def scale(self, ratio: Union[float, complex, tuple], origin: Position = 0j) -> Shape:
+    def scale(self, ratio: Union[float, complex, tuple], origin: PositionDescriber = 0j) -> Shape:
         # 缩放比例支持
         if isinstance(ratio, (float, int)):
             x_fact = y_fact = ratio
@@ -51,7 +51,7 @@ class Base(Shape, ABC):
         self._geo = A.scale(self._geo, xfact=x_fact, yfact=y_fact, zfact=0, origin=origin)
         return self
 
-    def rotate(self, degree: float, origin: Union[str, Position] = 0j) -> Shape:
+    def rotate(self, degree: float, origin: PositionDescriber = 0j) -> Shape:
         # 注意注意：此处的 degree 是角度制
         # 原点支持
         if isinstance(origin, complex):
@@ -69,7 +69,7 @@ class Base(Shape, ABC):
         self._geo = A.scale(self._geo, xfact=1, yfact=-1, zfact=0, origin=(0, y0))
         return self
 
-    def flip(self, degree: float, origin: Position) -> Shape:
+    def flip(self, degree: float, origin: PositionDescriber) -> Shape:
         # 直接两次旋转一次对称来做
         if isinstance(origin, str):
             assert origin == 'center', '仅支持 "center" 作为入参'
@@ -93,9 +93,12 @@ class Base(Shape, ABC):
         if self.reversed and not other.reversed:            # 一正一反的情况下，需要判断是否反形完全涵盖正形
             return not self.geo.contains(other.geo)
 
-    def if_contain(self, other: Shape) -> bool:
+    def if_contain(self, other: Union[Shape, Position]) -> bool:
         # EMPTY 和 FULL 不属于 Base，不会调用此方法，其判别在自己的逻辑内进行即可
         if other is Shape.EMPTY or other is Shape.FULL: return other.is_joint(self)
+        if not isinstance(other, Shape):
+            x, y = (other.real, other.imag) if isinstance(other, complex) else other
+            return self.reversed ^ self.geo.contains(shapely.Point(x, y))
         if not self.reversed and not other.reversed:        # 对正常图形来说，直接调库
             return self.geo.contains(other.geo)
         if self.reversed and other.reversed:                # 两个反形的包含关系刚好调过来

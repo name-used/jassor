@@ -7,7 +7,8 @@ from typing import Tuple, Union, List, Any, Iterable
 T = TypeVar('T', bound='ShapeInterface')
 
 # 坐标类型
-Position = Union[str, complex, Tuple[float, float]]
+Position = Union[complex, Tuple[float, float]]
+PositionDescriber = Union[str, Position]
 
 
 class ShapeInterface(ABC, Generic[T]):
@@ -75,15 +76,15 @@ class ShapeInterface(ABC, Generic[T]):
 
     __slots__ = ()
 
-    def offset(self, vector: Position) -> T:
+    def offset(self, vector: PositionDescriber) -> T:
         # 位移变换(原地的)
         raise NotImplementedError
 
-    def scale(self, ratio: float, origin: Position = 0j) -> T:
+    def scale(self, ratio: float, origin: PositionDescriber = 0j) -> T:
         # 缩放变换(原地的)
         raise NotImplementedError
 
-    def rotate(self, degree: float, origin: Position = 0j) -> T:
+    def rotate(self, degree: float, origin: PositionDescriber = 0j) -> T:
         # 旋转变换(原地的)
         raise NotImplementedError
 
@@ -95,7 +96,7 @@ class ShapeInterface(ABC, Generic[T]):
         # 镜像变换, 对称轴 y=y0 (原地的)
         raise NotImplementedError
 
-    def flip(self, degree: float, origin: Position) -> T:
+    def flip(self, degree: float, origin: PositionDescriber) -> T:
         # 镜像变换, 对称轴 x/a + y/b = 1 (原地的)
         raise NotImplementedError
 
@@ -111,7 +112,7 @@ class ShapeInterface(ABC, Generic[T]):
         # 集合论 判断相交
         raise NotImplementedError
 
-    def if_contain(self, other: T) -> bool:
+    def if_contain(self, other: Union[Position, T]) -> bool:
         # 集合论 判断覆盖
         raise NotImplementedError
 
@@ -214,10 +215,10 @@ class ShapeInterface(ABC, Generic[T]):
         raise NotImplementedError
 
     # 下列运算符均创建新对象
-    def __add__(self, pos: Union[complex, Tuple[float, float]]) -> T:
+    def __add__(self, pos: Position) -> T:
         return self.copy().offset(pos)
 
-    def __sub__(self, pos: Union[complex, Tuple[float, float]]) -> T:
+    def __sub__(self, pos: Position) -> T:
         if isinstance(pos, complex):
             return self.copy().offset(-pos)
         else:
@@ -261,10 +262,10 @@ class ShapeInterface(ABC, Generic[T]):
         return iter(self.sep_out())
 
     # 下列运算符均就地的修改对象
-    def __iadd__(self, pos: Union[complex, Tuple[float, float]]) -> T:
+    def __iadd__(self, pos: Position) -> T:
         return self.offset(pos)
 
-    def __isub__(self, pos: Union[complex, Tuple[float, float]]) -> T:
+    def __isub__(self, pos: Position) -> T:
         if isinstance(pos, complex):
             return self.offset(-pos)
         else:
@@ -294,6 +295,9 @@ class ShapeInterface(ABC, Generic[T]):
 
     def __irshift__(self, other: T) -> T:
         return self.remove(other)
+
+    def __contains__(self, other: Union[Position, T]) -> bool:
+        return self.if_contain(other)
 
     def dump(self, f: TextIO) -> None:
         f.write(self.dumps())
