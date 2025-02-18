@@ -5,7 +5,8 @@ import importlib
 my_modules = {
     'get_human': '.modnet_predict',
     'get_none_gray': '.pixel_diff',
-    'get_edge': '.area_diff',
+    # 'get_edge': '.area_diff',
+    'get_edge': '.edge_diff',
     # 'get_valid_area': '.cross_entropy',
 }
 
