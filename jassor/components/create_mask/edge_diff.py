@@ -5,7 +5,6 @@ import numpy as np
 
 
 def process(image: np.ndarray, blur_size: int = 9, thresh_min: float = 0, thresh_max: float = 1.):
-    # 探测边缘（我也不知道为什么，但总之，它确实可以做到）
     # unify image channels to 3
     if len(image.shape) == 2:
         image = image[:, :, None]
