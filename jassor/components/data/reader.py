@@ -25,7 +25,7 @@ except ImportError:
 
 def load(path: Union[str, Path]):
     _, ext = os.path.splitext(path)
-    if ext in ('.png', '.jpg', 'jpeg'):
+    if ext in ('.png', '.jpg', '.jpeg'):
         return ImageSlide(Image.open(path).convert('RGB'))
     if ext in ('.tif', '.svs'):
         if SlideType is None:

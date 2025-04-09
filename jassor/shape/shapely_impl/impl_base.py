@@ -151,7 +151,9 @@ class Base(Shape, ABC):
 
     def remove(self, other: Shape) -> Shape:
         # EMPTY 和 FULL 不属于 Base，不会调用此方法，其判别在自己的逻辑内进行即可
-        if other is Shape.EMPTY or other is Shape.FULL: return other.remove(self)
+        # if other is Shape.EMPTY or other is Shape.FULL: return other.remove(self)
+        if other is Shape.EMPTY: return self
+        if other is Shape.FULL: return Shape.EMPTY
         # 依据 reverse 标志决定真实运算
         if not self.reversed and not other.reversed:        # 正 + 正 -> 正常运算 - 我移除它      A >> B = (A & ~B) = A >> B
             return F.remove(self, other, reverse=False)
