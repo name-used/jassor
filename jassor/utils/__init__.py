@@ -18,6 +18,16 @@ my_modules = {
     'crop': '.cropper',
     'SlideWriter': '.writer_asap',
     'image2slide': '.writer_tiff',
+    'BBox': '.bbox',
+    'bbox_join_region': '.bbox',
+    'bbox_inter': '.bbox',
+    'bbox_inter_area_matrix': '.bbox',
+    'bbox_lurd2xywh': '.bbox',
+    'bbox_xywh2lurd': '.bbox',
+    'bbox_luwh2xywh': '.bbox',
+    'bbox_xywh2luwh': '.bbox',
+    'bbox_lurd2luwh': '.bbox',
+    'bbox_luwh2lurd': '.bbox',
 }
 
 
