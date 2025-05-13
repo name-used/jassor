@@ -1,4 +1,6 @@
 import matplotlib
+import torch
+
 matplotlib.use('TkAgg')  # 好像只有这个支持
 import math
 from typing import List, Any, Tuple
@@ -67,6 +69,9 @@ def _plot_item(ax: Axes, item: Any) -> Any:
 
     if item is None:
         return ax.imshow(_draw_empty(f'item is None'))
+
+    if isinstance(item, torch.Tensor):
+        item = item.detach().cpu().numpy()
 
     if isinstance(item, np.ndarray):
         # ndarray 必须是 (h, w, (1, 3, 4)) 或 (h, w)

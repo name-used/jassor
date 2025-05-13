@@ -28,6 +28,7 @@ my_modules = {
     'bbox_xywh2luwh': '.bbox',
     'bbox_lurd2luwh': '.bbox',
     'bbox_luwh2lurd': '.bbox',
+    'ipynb2pycode': '.ipynb2pycode',
 }
 
 
