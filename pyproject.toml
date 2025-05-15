@@ -3,7 +3,7 @@ requires = ["setuptools"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools.packages.find]
-include = ["jassor", "jassor.utils", "jassor.components", "jassor.components.*", "jassor.shape.*"]
+include = ["jassor", "jassor.utils", "jassor.components", "jassor.components.*", "jassor.shape", "jassor.shape.*"]
 exclude = [".gitignore"]
 
 [project]
@@ -16,9 +16,9 @@ authors = [
 description = "utils of jassor"
 readme = "README.md"
 requires-python = ">=3.9"
-license = { text = "GNU LESSER GENERAL PUBLIC LICENSE v3.0" }
-# license = "GNU LESSER GENERAL PUBLIC LICENSE v3.0"
-# license-files = ["LICENSE"]
+# license = { text = "GNU LESSER GENERAL PUBLIC LICENSE v3.0" }
+license = "MIT"
+license-files = ["LICENSE"]
 keywords = [
     'jassor',
     'utils',
