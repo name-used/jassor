@@ -1,5 +1,5 @@
 import jassor.utils as J
-from jassor.components import data
+from jassor.components.data.reader_tiff import TiffSlide
 import numpy as np
 
 
@@ -17,19 +17,15 @@ def main():
         tile_size=k,
         dimensions=(w, h),
         spacing=1,
-        color_type='RGBA',
-        data_type='UCHAR',
-        compression='LZW',
-        interpolation='NEAREST',
     ) as writer:
         for y in range(0, h, k):
             for x in range(0, w, k):
-                patch = random_patch(k, 4, 255, np.uint8)
-                patch[:, :, 3] = 120
+                patch = random_patch(k, 1, 255, np.uint8)[..., 0]
+                # patch[:, :, 3] = 120
                 print(f'color_{x}_{y}:{patch[0, 0]}')
                 writer.write(patch, x, y)
 
-    slide = data.load(path)
+    slide = TiffSlide(path)
     thumb = slide.thumb(level=0)
     for y in range(0, h, k):
         for x in range(0, w, k):
