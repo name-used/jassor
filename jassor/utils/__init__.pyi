@@ -4,12 +4,11 @@ from typing import Any, TextIO, BinaryIO, List, Dict, TypeVar, Tuple, Union
 from io import TextIOWrapper
 from pathlib import Path
 from threading import Condition
-import numpy
 import numpy as np
 from torch import Tensor
 import multiprocessing
 
-ndarray = numpy.ndarray
+ndarray = np.ndarray
 V = TypeVar('V')
 
 class JassorJsonEncoder(json.JSONEncoder):
@@ -109,7 +108,9 @@ def uniform_iter(T_len: int, I_len: int, max_gap: int) -> List[int]: ...
 def crop(image: ndarray, center: Tuple[float, float], size: Tuple[int, int], degree: float = 0, scale: float = 1, nearest: bool = True) -> ndarray: ...
 
 class SlideWriter:
-    def __init__(self, output_path: str, tile_size: int, dimensions: tuple, spacing: float, **options: str): ...
+    # def __init__(self, output_path: str, tile_size: int, dimensions: tuple, spacing: float, **options: str): ...
+    def __init__(self, output_path: str, tile_size: int, dimensions: tuple, spacing: float,
+        level_count: int = 5, interpolation: int = 0, channel: int = 0, dtype: type = np.uint8, **options: str): ...
     # options see:
     # color_type in ['INVALID', 'MONOCHROME', 'RGB', 'RGBA', 'INDEXED']
     # data_type in ['INVALID', 'UCHAR', 'UINT16', 'UINT32', 'FLOAT']

@@ -88,25 +88,29 @@ class SlideWriter:
     def finish(self):
         self._buffer.close()
         self._buffer = open(self._buffer_path, "rb")
-        # 第 1 张，完整全图
-        stream = self.load_buffer(level=0)
-        self._writer.write(data=stream, shape=self.shapes[0], tile=self.tile_shapes[0], dtype=self.dtype, description='FullImage', **self.options)
-        # 第 2 张，缩略图
-        stream = self.load_buffer(level=-1)
-        self._writer.write(data=stream, shape=self.shapes[-1], tile=self.tile_shapes[-1], dtype=self.dtype, description='Thumbnail', **self.options)
-        # 第 3 到第 N-2 张，降分辨率tile图，必须使用从大到小顺序
-        for level in range(1, self.level_count):
-            stream = self.load_buffer(level=level)
-            self._writer.write(data=stream, shape=self.shapes[level], tile=self.tile_shapes[level], dtype=self.dtype, description=f'level{level}', **self.options)
-        # 第 N-1 张 label 图 (没意义)
-        self._writer.write(data=np.zeros((64, 64), np.uint8), shape=(64, 64), tile=(64, 64), dtype=self.dtype, description=f'label', **self.options)
-        # 第 N 张 marco 图 (不知道什么作用)
-        stream = self.load_buffer(level=-1)
-        self._writer.write(data=stream, shape=self.shapes[-1], tile=self.tile_shapes[-1], dtype=self.dtype, description='Thumbnail', **self.options)
-        # 完毕
-        self._writer.close()
-        self._buffer.close()
-        os.remove(self._buffer_path)
+        try:
+            # 第 1 张，完整全图
+            stream = self.load_buffer(level=0)
+            self._writer.write(data=stream, shape=self.shapes[0], tile=self.tile_shapes[0], dtype=self.dtype, description='FullImage', **self.options)
+            # 第 2 张，缩略图
+            stream = self.load_buffer(level=-1)
+            self._writer.write(data=stream, shape=self.shapes[-1], tile=self.tile_shapes[-1], dtype=self.dtype, description='Thumbnail', **self.options)
+            # 第 3 到第 N-2 张，降分辨率tile图，必须使用从大到小顺序
+            for level in range(1, self.level_count):
+                stream = self.load_buffer(level=level)
+                self._writer.write(data=stream, shape=self.shapes[level], tile=self.tile_shapes[level], dtype=self.dtype, description=f'level{level}', **self.options)
+            # 第 N-1 张 label 图 (没意义)
+            self._writer.write(data=np.zeros((64, 64), np.uint8), shape=(64, 64), tile=(64, 64), dtype=self.dtype, description=f'label', **self.options)
+            # 第 N 张 marco 图 (不知道什么作用)
+            stream = self.load_buffer(level=-1)
+            self._writer.write(data=stream, shape=self.shapes[-1], tile=self.tile_shapes[-1], dtype=self.dtype, description='Thumbnail', **self.options)
+        except Exception as e:
+            traceback.print_exc()
+        finally:
+            # 完毕
+            self._writer.close()
+            self._buffer.close()
+            os.remove(self._buffer_path)
 
     def load_buffer(self, level: int):
         space = np.zeros(self.tile_shape, self.dtype)
@@ -130,6 +134,11 @@ class SlideWriter:
             self.finish()
         else:
             traceback.print_exc()
+            try:
+                self._writer.close()
+            except Exception as e:
+                pass
+            if not self._buffer.closed: self._buffer.close()
         return False
 
 
