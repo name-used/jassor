@@ -17,14 +17,14 @@ def main():
         tile_size=k,
         dimensions=(w, h),
         spacing=1,
-        color_type='RGBA',
-        data_type='UCHAR',
+        color_type='MONOCHROME',
+        data_type='UINT16',
         compression='LZW',
         interpolation='NEAREST',
     ) as writer:
         for y in range(0, h, k):
             for x in range(0, w, k):
-                patch = random_patch(k, 4, 255, np.uint8)
+                patch = random_patch(k, 4, 255, np.uint8)[:, :, 0]
                 print(f'color_{x}_{y}:{patch[0, 0]}')
                 writer.write(patch, x, y)
 
