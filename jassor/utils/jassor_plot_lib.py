@@ -17,13 +17,17 @@ if shapely_ok:
     from shapely.geometry.base import BaseGeometry
 
 
-def plot(item: Any, title: str = None, window_name: str = 'jassor_plot', save_to: str = None, dpi: int = 1000):
+def plot(item: Any, title: str = None, window_name: str = 'jassor_plot', save_to: str = None, dpi: int = 1000, ticks: bool = True):
     title = title or ''
     fig = plt.figure()
     ax = fig.add_subplot(111)
     _plot_item(ax, item)
     ax.set_title(str(title))
     ax.set_aspect('equal')
+    if not ticks:
+        # ax.axis('off')
+        ax.set_xticks([])
+        ax.set_yticks([])
 
     fig.canvas.manager.set_window_title(window_name)
     plt.tight_layout()
@@ -34,7 +38,7 @@ def plot(item: Any, title: str = None, window_name: str = 'jassor_plot', save_to
     plt.close(fig=fig)
 
 
-def plots(items: List[Any], titles: List[str] = None, window_name: str = 'jassor_plot', save_to: str = None, dpi: int = 1000):
+def plots(items: List[Any], titles: List[str] = None, window_name: str = 'jassor_plot', save_to: str = None, dpi: int = 1000, ticks: bool = True):
     n = len(items)
     titles = (titles or []) + [''] * n
     # 计算行列数量
@@ -50,6 +54,10 @@ def plots(items: List[Any], titles: List[str] = None, window_name: str = 'jassor
         _plot_item(ax, item)
         ax.set_title(str(title))
         ax.set_aspect('equal')
+        if not ticks:
+            # ax.axis('off')
+            ax.set_xticks([])
+            ax.set_yticks([])
 
     fig.canvas.manager.set_window_title(window_name)
     plt.tight_layout()
