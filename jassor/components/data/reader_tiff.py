@@ -29,5 +29,5 @@ class TiffSlide(Reader):
         u0 = round(up * downsample)
         w = round(right - left)
         h = round(down - up)
-        patch = self.slide.read_region(location=(l0, u0), level=level, size=(w, h))
-        return np.asarray(patch)
+        patch = self.slide.read_region(location=(l0, u0), level=level, size=(w, h), as_array=True)
+        return patch

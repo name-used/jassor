@@ -18,10 +18,10 @@ class AsapSlide(Reader):
         return float(self.slide.getProperty('openslide.mpp-x'))
 
     def dimension(self, level: int = 0) -> Tuple[int, int]:
-        return self.slide.getLevelDimensions(level)
+        return self.slide.getLevelDimensions(level % self.level_count)
 
     def downsample(self, level: int = 0) -> float:
-        return self.slide.getLevelDownsample(level)
+        return self.slide.getLevelDownsample(level % self.level_count)
 
     def region(self, level: int, left: num, up: num, right: num, down: num) -> np.ndarray:
         downsample = self.downsample(level)

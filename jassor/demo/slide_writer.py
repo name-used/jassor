@@ -1,31 +1,100 @@
 import jassor.utils as J
 from jassor.components.data.reader_tiff import TiffSlide
+from jassor.components.data.reader_openslide import OpenSlide
+from jassor.components.data.reader_asap import AsapSlide
 import numpy as np
+
+k = 512
+w = 5900
+h = 3700
 
 
 def main():
-    path = rf'./test.tif'
-    k = 512
-    w = 2048
-    h = 1024
+    print('第一段程序测试写出灰度图')
+    demo1(rf'./test1.tif')
+    input('输入任意字符以继续...')
+    print('第二段程序测试写出RGB图')
+    demo2(rf'./test2.tif')
+    input('输入任意字符以继续...')
+    print('第三段程序测试写出uint16图')
+    demo3(rf'./test3.tif')
+
+
+def demo1(path):
+    # 现在使用 TIFFFILE 写 SVS 图
+    # 在 TIFFFILE 定义中，灰度图的定义是 MINISBLACK
+    # 同时，本地封装定义 channel==0 时形状为 (height, width)
+    # 当 channel >= 1 时，形状为 (height, width, channel)
     with J.SlideWriter(
         output_path=path,
         tile_size=k,
         dimensions=(w, h),
-        spacing=1,
+        level_count=2,
+        mpp=1,
+        mag=40,
+        photometric='MINISBLACK',
+        channel=0,
     ) as writer:
         for y in range(0, h, k):
             for x in range(0, w, k):
                 patch = random_patch(k, 1, 255, np.uint8)[..., 0]
-                # patch[:, :, 3] = 120
-                print(f'color_{x}_{y}:{patch[0, 0]}')
+                # print(f'color_{x}_{y}:{patch[0, 0]}')
                 writer.write(patch, x, y)
 
-    slide = TiffSlide(path)
+    # 为展示多样性支持，例程中分别使用 openslide、tiffslide、asapslide 读取缩略图
+    slide = OpenSlide(path)
+    print(slide.level_count, slide.dimension(-1), slide.downsample(-1))
+    # print(slide.slide.properties)
     thumb = slide.thumb(level=0)
-    for y in range(0, h, k):
-        for x in range(0, w, k):
-            print(thumb[y, x])
+    J.plot(thumb)
+
+
+def demo2(path):
+    with J.SlideWriter(
+        output_path=path,
+        tile_size=k,
+        dimensions=(w, h),
+        level_count=2,
+        mpp=1,
+        mag=40,
+        photometric='RGB',
+        channel=3,
+    ) as writer:
+        for y in range(0, h, k):
+            for x in range(0, w, k):
+                patch = random_patch(k, 3, 255, np.uint8)
+                # print(f'color_{x}_{y}:{patch[0, 0]}')
+                writer.write(patch, x, y)
+
+    # 为展示多样性支持，例程中分别使用 openslide、tiffslide、asapslide 读取缩略图
+    slide = AsapSlide(path)
+    print(slide.level_count, slide.dimension(-1), slide.downsample(-1))
+    thumb = slide.thumb(level=0)
+    J.plot(thumb)
+
+
+def demo3(path):
+    with J.SlideWriter(
+        output_path=path,
+        tile_size=k,
+        dimensions=(w, h),
+        level_count=2,
+        mpp=1,
+        mag=40,
+        photometric='RGB',
+        channel=3,
+        dtype=np.uint16
+    ) as writer:
+        for y in range(0, h, k):
+            for x in range(0, w, k):
+                patch = random_patch(k, 3, 255, np.uint16)
+                # print(f'color_{x}_{y}:{patch[0, 0]}')
+                writer.write(patch, x, y)
+
+    # ASAP 不能读 uint16 的图
+    slide = TiffSlide(path)
+    print(slide.level_count, slide.dimension(-1), slide.downsample(-1))
+    thumb = slide.thumb(level=0)
     J.plot(thumb)
 
 
