@@ -1,3 +1,6 @@
+import zarr
+from tifffile import tifffile
+
 import jassor.utils as J
 from jassor.components.data.reader_tiff import TiffSlide
 from jassor.components.data.reader_openslide import OpenSlide
@@ -87,15 +90,16 @@ def demo3(path):
     ) as writer:
         for y in range(0, h, k):
             for x in range(0, w, k):
-                patch = random_patch(k, 3, 255, np.uint16)
+                patch = random_patch(k, 3, 50000, np.uint16)
                 # print(f'color_{x}_{y}:{patch[0, 0]}')
                 writer.write(patch, x, y)
 
-    # ASAP 不能读 uint16 的图
+    # ASAP 不能读 uint16 的图，plot 对于大于 255 的数值也不能正常显示
     slide = TiffSlide(path)
     print(slide.level_count, slide.dimension(-1), slide.downsample(-1))
     thumb = slide.thumb(level=0)
-    J.plot(thumb)
+    print(thumb.max())
+    J.plots([thumb // 256, thumb % 256])
 
 
 def random_patch(patch_size: int, channel: int, max_value: int, dtype: type):
