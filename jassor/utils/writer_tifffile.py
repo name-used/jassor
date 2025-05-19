@@ -1,9 +1,9 @@
 import inspect
+from skimage.transform import resize
 import os
 import traceback
 from pathlib import Path
-
-import cv2
+import zstandard as zstd
 import numpy as np
 import tifffile
 
@@ -29,7 +29,8 @@ class SlideWriter:
             photometric: str = 'minisblack',
             level_count: int = 5,
             name: str = '',
-            interpolation: int = cv2.INTER_NEAREST,
+            # interpolation: int = cv2.INTER_NEAREST,
+            interpolation: str = 'Nearest',
             channel: int = 0,
             dtype: type = np.uint8,
             **options: str
@@ -41,7 +42,7 @@ class SlideWriter:
         self.mpp = mpp
         self.mag = mag
         self.level_count = level_count
-        self.interpolation = interpolation
+        self.interpolation = interpolation_map[interpolation.upper()]   # 插值方式选项
         self.compression = compression_map[compression.upper()]  # 压缩方式选项
         self.photometric = photometric_map[photometric.upper()]  # 颜色选项
         self.options = options
@@ -74,6 +75,8 @@ class SlideWriter:
         self._buffer_path = f'{output_path}.buffer'
         self._buffer = open(self._buffer_path, 'wb')
         self._info_cache = {}
+        self.cctx = zstd.ZstdCompressor()
+        self.dctx = zstd.ZstdDecompressor()
 
         # 检查参数是否符合匹配要求，不符合直接报错
         try:
@@ -89,13 +92,16 @@ class SlideWriter:
         # 分层级存储
         info = []
         for level in range(self.level_count):
-            tile = cv2.resize(tile, self.tile_shapes[level][:2], interpolation=self.interpolation)
+            tile = resize(tile, self.tile_shapes[level][:2], order=self.interpolation)
+            # tile = cv2.resize(tile, self.tile_shapes[level][:2], interpolation=self.interpolation)
             # 编码
-            success, buffer = cv2.imencode('.png', tile)
-            if not success: raise RuntimeError("图像压缩失败")
+            # success, buffer = cv2.imencode('.png', tile)
+            # if not success: raise RuntimeError("图像压缩失败")
+            # 使用 zstd 压缩格式
+            buffer = self.cctx.compress(tile.flatten().tobytes())
             # 写入缓冲区
             pos_start = self._buffer.tell()
-            self._buffer.write(buffer.tobytes())  # 写入 PNG 数据
+            self._buffer.write(buffer)  # 写入 PNG 数据
             pos_end = self._buffer.tell()
             info.append((pos_start, pos_end))
         # 记录写图信息
@@ -130,9 +136,10 @@ class SlideWriter:
                     continue
                 pos_start, pos_end = self._info_cache[(x, y)][level]
                 self._buffer.seek(pos_start)
-                buffered_data = self._buffer.read(pos_end - pos_start)
-                img_array = np.frombuffer(buffered_data, dtype=np.uint8)
-                img = cv2.imdecode(img_array, cv2.IMREAD_UNCHANGED)
+                buffer = self._buffer.read(pos_end - pos_start)
+                image_bytes = self.dctx.decompress(buffer)
+                img = np.frombuffer(image_bytes, dtype=self.dtype).reshape(self.tile_shapes[level])
+                # img = cv2.imdecode(img_array, cv2.IMREAD_UNCHANGED)
                 yield img
 
     def __enter__(self):
@@ -179,4 +186,9 @@ compression_map = {
     'LZMA': 50002,  # Lempel-Ziv-Markov 压缩
     'WEBP': 50003,  # 用于 Web 图像压缩
     'auto': 'auto',  # 自动选择（仅在某些 tifffile 函数中支持）
+}
+interpolation_map = {
+    'NEAREST': 0,
+    'BILINEAR': 1,
+    'LINEAR': 1,
 }

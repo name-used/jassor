@@ -1,6 +1,3 @@
-import zarr
-from tifffile import tifffile
-
 import jassor.utils as J
 from jassor.components.data.reader_tiff import TiffSlide
 from jassor.components.data.reader_openslide import OpenSlide
@@ -21,6 +18,12 @@ def main():
     input('输入任意字符以继续...')
     print('第三段程序测试写出uint16图')
     demo3(rf'./test3.tif')
+    input('输入任意字符以继续...')
+    print('第三段程序测试写出int64图')
+    demo4(rf'./test4.tif')
+    input('输入任意字符以继续...')
+    print('第三段程序测试写出多通道图')
+    demo5(rf'./test5.tif')
 
 
 def demo1(path):
@@ -98,8 +101,58 @@ def demo3(path):
     slide = TiffSlide(path)
     print(slide.level_count, slide.dimension(-1), slide.downsample(-1))
     thumb = slide.thumb(level=0)
-    print(thumb.max())
+    print(thumb.max(), thumb.dtype, thumb.shape)
     J.plots([thumb // 256, thumb % 256])
+
+
+def demo4(path):
+    with J.SlideWriter(
+        output_path=path,
+        tile_size=k,
+        dimensions=(w, h),
+        level_count=2,
+        mpp=1,
+        mag=40,
+        photometric='RGB',
+        channel=3,
+        dtype=np.int64
+    ) as writer:
+        for y in range(0, h, k):
+            for x in range(0, w, k):
+                patch = random_patch(k, 3, 50000, np.int64)
+                # print(f'color_{x}_{y}:{patch[0, 0]}')
+                writer.write(patch, x, y)
+
+    # 甚至可以存储 int64
+    slide = TiffSlide(path)
+    print(slide.level_count, slide.dimension(-1), slide.downsample(-1))
+    thumb = slide.thumb(level=0)
+    print(thumb.max(), thumb.dtype, thumb.shape)
+
+
+def demo5(path):
+    with J.SlideWriter(
+        output_path=path,
+        tile_size=k,
+        dimensions=(w, h),
+        level_count=2,
+        mpp=1,
+        mag=40,
+        photometric='RGB',
+        channel=5,
+        dtype=np.uint8
+    ) as writer:
+        for y in range(0, h, k):
+            for x in range(0, w, k):
+                patch = random_patch(k, 5, 255, np.uint8)
+                # print(f'color_{x}_{y}:{patch[0, 0]}')
+                writer.write(patch, x, y)
+
+    # 也可以存储多通道（但这样就没办法可视化了）
+    slide = TiffSlide(path)
+    print(slide.level_count, slide.dimension(-1), slide.downsample(-1))
+    thumb = slide.thumb(level=0)
+    print(thumb.max(), thumb.dtype, thumb.shape)
 
 
 def random_patch(patch_size: int, channel: int, max_value: int, dtype: type):
