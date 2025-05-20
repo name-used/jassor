@@ -75,7 +75,7 @@ class SlideWriter:
         self._buffer_path = f'{output_path}.buffer'
         self._buffer = open(self._buffer_path, 'wb')
         self._info_cache = {}
-        self.cctx = zstd.ZstdCompressor()
+        self.cctx = zstd.ZstdCompressor(level=1)
         self.dctx = zstd.ZstdDecompressor()
 
         # 检查参数是否符合匹配要求，不符合直接报错
