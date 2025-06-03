@@ -2,6 +2,7 @@ from typing import Tuple, Union
 from pathlib import Path
 import numpy as np
 import tiffslide
+from PIL import Image
 from .interface import Reader, num
 
 
@@ -23,11 +24,14 @@ class TiffSlide(Reader):
     def downsample(self, level: int = 0) -> float:
         return self.slide.level_downsamples[level]
 
-    def region(self, level: int, left: num, up: num, right: num, down: num) -> np.ndarray:
+    def region(self, level: int, left: num, up: num, right: num, down: num, as_array=True) -> Union[np.ndarray, Image]:
         downsample = self.downsample(level)
         l0 = round(left * downsample)
         u0 = round(up * downsample)
         w = round(right - left)
         h = round(down - up)
         patch = self.slide.read_region(location=(l0, u0), level=level, size=(w, h), as_array=True)
-        return patch
+        if as_array:
+            return patch
+        else:
+            return Image.fromarray(patch)
