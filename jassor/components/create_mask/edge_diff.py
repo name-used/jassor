@@ -1,5 +1,3 @@
-from scipy import signal
-from scipy import ndimage
 import cv2
 import numpy as np
 

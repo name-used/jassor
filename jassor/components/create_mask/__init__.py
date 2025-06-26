@@ -6,6 +6,7 @@ my_modules = {
     'get_human': '.modnet_predict',
     'get_none_gray': '.pixel_diff',
     'get_edge': '.area_diff',
+    'get_edge2': '.edge_diff2',
     'get_sketch': '.edge_diff',
     'get_valid_area': '.back_free',
 }

@@ -1,9 +1,8 @@
 from typing import List
 import sys
-from PyQt5.QtWidgets import QApplication, QWidget, QLabel, QVBoxLayout, QPushButton, QShortcut, QFileDialog
+from PyQt5.QtWidgets import QApplication, QWidget, QVBoxLayout, QPushButton, QShortcut, QFileDialog
 from PyQt5.QtGui import QKeySequence, QMouseEvent, QWheelEvent, QPixmap
 from PyQt5.QtCore import Qt, QPoint, QTimer
-from PyQt5.QtWidgets import QWidget
 from PyQt5.QtGui import QPainter, QPen, QColor
 
 
