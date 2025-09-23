@@ -7,7 +7,7 @@ from .interface import Reader, num
 
 class AsapSlide(Reader):
     def __init__(self, path: Union[str, Path]):
-        self.slide = mir.MultiResolutionImageReader().open(path)
+        self.slide = mir.MultiResolutionImageReader().open(str(path))
 
     @property
     def level_count(self) -> int:

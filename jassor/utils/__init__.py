@@ -20,6 +20,7 @@ my_modules = {
     'SlideWriter': '.writer_tifffile',
     'image2slide': '.writer_tiff',
     'BBox': '.bbox',
+    'bbox_to_contour': '.bbox',
     'bbox_join_region': '.bbox',
     'bbox_inter': '.bbox',
     'bbox_inter_area_matrix': '.bbox',
@@ -30,6 +31,7 @@ my_modules = {
     'bbox_lurd2luwh': '.bbox',
     'bbox_luwh2lurd': '.bbox',
     'ipynb2pycode': '.ipynb2pycode',
+    'find_contour': '.contour',
 }
 
 
