@@ -2,7 +2,7 @@ from typing import Tuple, Union
 from pathlib import Path
 import numpy as np
 import tiffslide
-from PIL import Image
+from PIL.Image import Image
 from .interface import Reader, num
 
 

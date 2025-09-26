@@ -32,6 +32,7 @@ my_modules = {
     'bbox_luwh2lurd': '.bbox',
     'ipynb2pycode': '.ipynb2pycode',
     'find_contour': '.contour',
+    'geojson2shapes': '.contour',
 }
 
 
