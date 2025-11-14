@@ -21,8 +21,11 @@ def demo1():
 def demo2():
     x = cv2.imread(rf'../../resources/test.jpg')
     J.plot(x)
-    J.plot(J.crop(x, (960, 540), (400, 400), degree=30, scale=2))
-    J.plot(J.crop(x, (960, 540), (400, 400), degree=30, scale=2, nearest=False))
+    J.plots([
+        J.crop(x, (960, 540), (400, 400), degree=0, scale=1, nearest=False),
+        J.crop(x, (960, 540), (400, 400), degree=30, scale=2, nearest=False),
+        J.crop(x, (960, 540), (400, 400), degree=-90, scale=0.5, nearest=False),
+    ])
 
 
 if __name__ == '__main__':
