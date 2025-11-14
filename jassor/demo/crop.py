@@ -25,6 +25,7 @@ def demo2():
         J.crop(x, (960, 540), (400, 400), degree=0, scale=1, nearest=False),
         J.crop(x, (960, 540), (400, 400), degree=30, scale=2, nearest=False),
         J.crop(x, (960, 540), (400, 400), degree=-90, scale=0.5, nearest=False),
+        J.crop(x, (0, 0), (400, 400), degree=15, scale=0.95, nearest=False, pad_item=[180, 0, 255]),
     ])
 
 

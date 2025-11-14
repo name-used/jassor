@@ -2,12 +2,8 @@ from typing import Tuple, List, Union
 import numpy as np
 import cv2
 
-import numpy as np
-import cv2
-from typing import Tuple, Union
 
-
-def crop(image: np.ndarray, center: Tuple[float, float], size: Tuple[int, int], degree: float = 0, scale: float = 1, nearest: bool = True, pad_item: int = 0) -> np.ndarray:
+def crop(image: np.ndarray, center: Tuple[float, float], size: Union[int, Tuple[int, int]], degree: float = 0, scale: float = 1, nearest: bool = True, pad_item: Union[int, List[int]] = 0) -> np.ndarray:
     """
         切图函数，用于切割给定图像，参数含义如下所示：
         1. 定义一个尺寸为 size 的窗口
@@ -22,9 +18,11 @@ def crop(image: np.ndarray, center: Tuple[float, float], size: Tuple[int, int], 
     cx, cy = center
     w, h = (int(size), int(size)) if np.isscalar(size) else map(int, size)
     if len(image.shape) == 2:
+        pad_item = pad_item if np.isscalar(pad_item) else pad_item[0]
         return _crop(image, cx, cy, w, h, degree, scale, nearest, pad_item)
     elif len(image.shape) == 3:
-        results = [_crop(image[:, :, i], cx, cy, w, h, degree, scale, nearest, pad_item) for i in range(image.shape[2])]
+        pad_item = [pad_item] * image.shape[2] if np.isscalar(pad_item) else pad_item
+        results = [_crop(image[:, :, i], cx, cy, w, h, degree, scale, nearest, pad_item[i]) for i in range(image.shape[2])]
         return np.stack(results, axis=2)
     else:
         raise ValueError(f'Shape of image must be array[y, x] or array[y, x, c], but found {type(image)} - {image.shape}')
