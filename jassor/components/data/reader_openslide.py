@@ -7,7 +7,8 @@ from .interface import Reader, num
 
 class OpenSlide(Reader):
     def __init__(self, path: Union[str, Path]):
-        self.slide = openslide.OpenSlide(path)
+        super().__init__(path)
+        self.slide = openslide.OpenSlide(self.path)
 
     @property
     def level_count(self) -> int:
@@ -30,4 +31,4 @@ class OpenSlide(Reader):
         w = round(right - left)
         h = round(down - up)
         patch = self.slide.read_region(location=(l0, u0), level=level, size=(w, h))
-        return np.asarray(patch)
+        return np.asarray(patch)  # type: ignore[arg-type]

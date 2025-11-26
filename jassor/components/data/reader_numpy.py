@@ -1,13 +1,21 @@
-from typing import Tuple
 import numpy as np
+from typing import Tuple, Union
+from pathlib import Path
 from .interface import Reader, num
 
 
 class NumpySlide(Reader):
-    def __init__(self, image: np.ndarray, base_mpp: float = 0.5):
-        self.image = image
+    def __init__(self, path: Union[str, Path], base_mpp: float = 0.5):
+        super().__init__(path)
+        self.image = np.load(path)
         self.dim = len(self.image.shape)
         self._base_mpp = base_mpp
+
+    @staticmethod
+    def from_image(image: np.ndarray, path: Union[str, Path], mpp: float):
+        slide = NumpySlide(path, mpp)
+        slide.image = image
+        return slide
 
     @property
     def level_count(self) -> int:

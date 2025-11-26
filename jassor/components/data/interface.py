@@ -1,11 +1,15 @@
 import abc
 from typing import Tuple, Union
 import numpy as np
+from pathlib import Path
 
 num = Union[float, int]
 
 
 class Reader:
+    def __init__(self, path: Union[str, Path], *args, **kwargs):
+        self.path = path
+
     @property
     @abc.abstractmethod
     def level_count(self) -> int:

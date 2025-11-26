@@ -26,11 +26,11 @@ except ImportError:
 def load(path: Union[str, Path]):
     _, ext = os.path.splitext(path)
     if ext in ('.png', '.jpg', '.jpeg'):
-        return ImageSlide(Image.open(path).convert('RGB'))
+        return ImageSlide(path)
     if ext in ('.tif', '.svs'):
         if SlideType is None:
             raise ImportError('Lib Imported Failed!')
         return SlideType(path)
     if ext in ('.numpy',):
-        return NumpySlide(np.load(path))
+        return NumpySlide(path)
     raise TypeError(f'File type not supported! {ext}')

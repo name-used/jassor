@@ -1,14 +1,24 @@
-from typing import Tuple
 import numpy as np
 from .interface import Reader, num
 from PIL import Image
+from typing import Tuple, Union
+from pathlib import Path
 Image.MAX_IMAGE_PIXELS = 16_0000_0000
 
 
 class ImageSlide(Reader):
-    def __init__(self, image: Image.Image, base_mpp: float = 0.5):
-        self.image = image
+    def __init__(self, path: Union[str, Path], base_mpp: float = 0.5, force_convert: str = 'RGB'):
+        super().__init__(path)
+        self.image = Image.open(path)
+        if force_convert:
+            self.image = self.image.convert('RGB')
         self._base_mpp = base_mpp
+
+    @staticmethod
+    def from_image(image: Image, path: Union[str, Path], mpp: float):
+        slide = ImageSlide(path, mpp)
+        slide.image = image
+        return slide
 
     @property
     def level_count(self) -> int:

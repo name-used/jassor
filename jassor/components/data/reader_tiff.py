@@ -8,7 +8,8 @@ from .interface import Reader, num
 
 class TiffSlide(Reader):
     def __init__(self, path: Union[str, Path]):
-        self.slide = tiffslide.TiffSlide(path)
+        super().__init__(path)
+        self.slide = tiffslide.TiffSlide(self.path)
 
     @property
     def level_count(self) -> int:
@@ -30,8 +31,5 @@ class TiffSlide(Reader):
         u0 = round(up * downsample)
         w = round(right - left)
         h = round(down - up)
-        patch = self.slide.read_region(location=(l0, u0), level=level, size=(w, h), as_array=True)
-        if as_array:
-            return patch
-        else:
-            return Image.fromarray(patch)
+        patch = self.slide.read_region(location=(l0, u0), level=level, size=(w, h), as_array=as_array) # type: ignore[arg-type]
+        return patch
