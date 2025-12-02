@@ -167,9 +167,10 @@ class SlideWriter:
         stream = self.load_buffer(level=level)
         h, w = self.shapes[level][:2]
         ty, tx = self.tile_shapes[level][: 2]
-        image = np.zeros(self.shapes[level], dtype=self.dtype)
-        for y in range(0, h, self.tile_size):
-            for x in range(0, w, self.tile_size):
+        shape = (h+-h%ty, w+-w%tx, *self.shapes[level][2:])
+        image = np.zeros(shape, dtype=self.dtype)
+        for y in range(0, h, ty):
+            for x in range(0, w, tx):
                 tile = next(stream)
                 image[y: y+ty, x: x+tx, ...] = tile
         return image
