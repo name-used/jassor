@@ -1,3 +1,4 @@
+from pathlib import Path
 import jassor.utils as J
 from jassor.components.data.reader_tiff import TiffSlide
 from jassor.components.data.reader_openslide import OpenSlide
@@ -7,23 +8,25 @@ import numpy as np
 k = 512
 w = 5900
 h = 3700
+output_root = Path(rf'../../cache/slide_write')
+output_root.mkdir(exist_ok=True)
 
 
 def main():
     print('第一段程序测试写出灰度图')
-    demo1(rf'./test1.tif')
-    input('输入任意字符以继续...')
-    print('第二段程序测试写出RGB图')
-    demo2(rf'./test2.tif')
-    input('输入任意字符以继续...')
-    print('第三段程序测试写出uint16图')
-    demo3(rf'./test3.tif')
-    input('输入任意字符以继续...')
-    print('第三段程序测试写出int64图')
-    demo4(rf'./test4.tif')
-    input('输入任意字符以继续...')
-    print('第三段程序测试写出多通道图')
-    demo5(rf'./test5.tif')
+    demo1(output_root / rf'test1.tif')
+    # input('输入任意字符以继续...')
+    # print('第二段程序测试写出RGB图')
+    # demo2(output_root / rf'test1.tif')
+    # input('输入任意字符以继续...')
+    # print('第三段程序测试写出uint16图')
+    # demo3(output_root / rf'test1.tif')
+    # input('输入任意字符以继续...')
+    # print('第三段程序测试写出int64图')
+    # demo4(output_root / rf'test1.tif')
+    # input('输入任意字符以继续...')
+    # print('第三段程序测试写出多通道图')
+    # demo5(output_root / rf'test1.tif')
 
 
 def demo1(path):
@@ -35,7 +38,7 @@ def demo1(path):
         output_path=path,
         tile_size=k,
         dimensions=(w, h),
-        level_count=2,
+        level_count=5,
         mpp=1,
         mag=40,
         photometric='MINISBLACK',
@@ -48,8 +51,8 @@ def demo1(path):
                 writer.write(patch, x, y)
 
     # 为展示多样性支持，例程中分别使用 openslide、tiffslide、asapslide 读取缩略图
-    slide = OpenSlide(path)
-    print(slide.level_count, slide.dimension(-1), slide.downsample(-1))
+    slide = TiffSlide(path)
+    print(slide.level_count, slide.dimension(-1), slide.downsample(-1), [slide.downsample(level) for level in range(slide.level_count)])
     # print(slide.slide.properties)
     thumb = slide.thumb(level=0)
     J.plot(thumb)

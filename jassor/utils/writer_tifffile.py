@@ -1,4 +1,7 @@
+from typing import Union, List
 import inspect
+
+import cv2
 from skimage.transform import resize
 import os
 import traceback
@@ -33,6 +36,7 @@ class SlideWriter:
             interpolation: str = 'Nearest',
             channel: int = 0,
             dtype: type = np.uint8,
+            default_value: Union[int, List[int]] = 0,
             **options: str
     ):
         self.output_path = output_path
@@ -48,6 +52,7 @@ class SlideWriter:
         self.options = options
         self.channel = channel
         self.dtype = dtype
+        self.default_value = default_value
         self.shapes = [
             (self.H // 2 ** level, self.W // 2 ** level)
             if self.channel == 0 else
@@ -68,6 +73,18 @@ class SlideWriter:
             photometric=self.photometric, compression=self.compression,
             planarconfig='CONTIG', metadata=None,
             **options
+        )
+        self.thumb_w, self.thumb_h = self.W, self.H
+        while max(self.thumb_w, self.thumb_h) > 2000:
+            self.thumb_w, self.thumb_h = self.thumb_w // 2, self.thumb_h // 2
+        self.thumb_options = dict(
+            shape=(self.thumb_h, self.thumb_w, 3),
+            photometric=photometric_map['RGB'],
+            compression=compression_map['LZW'],
+            planarconfig='CONTIG',
+            metadata=None,
+            dtype=np.uint8,
+            **options,
         )
 
         # 这个必须按流式方法，一次性写入，我需要手动管理一个类似 ASAP 写图时的缓冲区的东西
@@ -114,6 +131,10 @@ class SlideWriter:
             # 第 1 张，完整全图，带描述
             stream = self.load_buffer(level=0)
             self._writer.write(data=stream, shape=self.shapes[0], tile=self.tile_shapes[0][:2], description=self.desc, **self.options)
+            # 第 2 张，缩略图，锁定显示格式
+            image = self.load_image(level=-1)
+            thumb = self.make_thumb(image)
+            self._writer.write(data=thumb, **self.thumb_options)
             # 降分辨率tile图，从大到小
             for level in range(1, self.level_count):
                 stream = self.load_buffer(level=level)
@@ -127,7 +148,7 @@ class SlideWriter:
             os.remove(self._buffer_path)
 
     def load_buffer(self, level: int):
-        space = np.ones(self.tile_shapes[0], self.dtype)
+        space = np.ones(self.tile_shapes[0], self.dtype) * self.default_value
         H, W = self.shapes[0][:2]
         for y in range(0, H, self.tile_size):
             for x in range(0, W, self.tile_size):
@@ -141,6 +162,29 @@ class SlideWriter:
                 img = np.frombuffer(image_bytes, dtype=self.dtype).reshape(self.tile_shapes[level])
                 # img = cv2.imdecode(img_array, cv2.IMREAD_UNCHANGED)
                 yield img
+
+    def load_image(self, level: int):
+        stream = self.load_buffer(level=level)
+        h, w = self.shapes[level][:2]
+        ty, tx = self.tile_shapes[level][: 2]
+        image = np.zeros(self.shapes[level], dtype=self.dtype)
+        for y in range(0, h, self.tile_size):
+            for x in range(0, w, self.tile_size):
+                tile = next(stream)
+                image[y: y+ty, x: x+tx, ...] = tile
+        return image
+
+    def make_thumb(self, image: np.ndarray):
+        if np.issubdtype(image.dtype, np.floating):
+            image = (image.clip(0, 1) * 255).round().astype(np.uint8)
+        image = cv2.resize(image, (self.thumb_w, self.thumb_h))
+        if image.ndim == 2:
+            image = image[..., None]
+        if image.shape[2] < 3:
+            image = np.concatenate([image, np.repeat(image[..., [-1]], 3 - image.shape[2], 2)], 2)
+        elif image.shape[2] > 3:
+            image = image[..., :3]
+        return image
 
     def __enter__(self):
         return self
