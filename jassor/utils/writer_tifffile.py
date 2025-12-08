@@ -148,7 +148,7 @@ class SlideWriter:
             os.remove(self._buffer_path)
 
     def load_buffer(self, level: int):
-        space = np.ones(self.tile_shapes[0], self.dtype) * self.default_value
+        space = np.ones(self.tile_shapes[level], self.dtype) * self.default_value
         H, W = self.shapes[0][:2]
         for y in range(0, H, self.tile_size):
             for x in range(0, W, self.tile_size):
