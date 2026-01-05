@@ -33,8 +33,8 @@ my_modules = {
     'ipynb2pycode': '.ipynb2pycode',
     'find_contour': '.contour',
     'geojson2shapes': '.contour',
-    'align_fourier': '.align_fourier',
-    'align_keypoint': '.align_keypoint',
+    'align_fourier': '.align_in_fourier',
+    'align_keypoint': '.align_in_keypoint',
 }
 
 
