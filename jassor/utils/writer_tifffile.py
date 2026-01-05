@@ -104,7 +104,8 @@ class SlideWriter:
             raise e
 
     def write(self, tile: np.ndarray, x: int, y: int):
-        assert tile.shape == self.tile_shape, f'要求写入数与维度数对齐{tile.shape} -- {self.tile_shape}'
+        assert tile.shape == self.tile_shape, f'要求写入数与维度数对齐 -- tile[{tile.shape}] -- writer[{self.tile_shape}]'
+        assert tile.dtype == self.dtype, f'要求写入格式对齐 -- tile[{tile.dtype}] -- writer[{self.dtype}]'
 
         # 分层级存储
         info = []
@@ -178,13 +179,14 @@ class SlideWriter:
     def make_thumb(self, image: np.ndarray):
         if np.issubdtype(image.dtype, np.floating):
             image = (image.clip(0, 1) * 255).round().astype(np.uint8)
-        image = cv2.resize(image, (self.thumb_w, self.thumb_h))
+        image = image.astype(np.uint8)
         if image.ndim == 2:
             image = image[..., None]
         if image.shape[2] < 3:
             image = np.concatenate([image, np.repeat(image[..., [-1]], 3 - image.shape[2], 2)], 2)
         elif image.shape[2] > 3:
             image = image[..., :3]
+        image = cv2.resize(image, (self.thumb_w, self.thumb_h))
         return image
 
     def __enter__(self):
