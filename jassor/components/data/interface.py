@@ -8,7 +8,7 @@ num = Union[float, int]
 
 class Reader:
     def __init__(self, path: Union[str, Path], *args, **kwargs):
-        self.path = path
+        self.path = Path(path)
 
     @property
     @abc.abstractmethod

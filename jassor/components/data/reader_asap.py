@@ -8,7 +8,7 @@ from .interface import Reader, num
 class AsapSlide(Reader):
     def __init__(self, path: Union[str, Path]):
         super().__init__(path)
-        self.slide = mir.MultiResolutionImageReader().open(self.path)
+        self.slide = mir.MultiResolutionImageReader().open(str(self.path))
 
     @property
     def level_count(self) -> int:
@@ -16,7 +16,8 @@ class AsapSlide(Reader):
 
     @property
     def base_mpp(self) -> float:
-        return float(self.slide.getProperty('openslide.mpp-x'))
+        # return float(self.slide.getProperty('openslide.mpp-x'))
+        return self.slide.getSpacing()[0]
 
     def dimension(self, level: int = 0) -> Tuple[int, int]:
         return self.slide.getLevelDimensions(level % self.level_count)

@@ -14,19 +14,19 @@ output_root.mkdir(exist_ok=True)
 
 def main():
     print('第一段程序测试写出灰度图')
-    demo1(output_root / rf'test1.tif')
-    # input('输入任意字符以继续...')
-    # print('第二段程序测试写出RGB图')
-    # demo2(output_root / rf'test1.tif')
-    # input('输入任意字符以继续...')
-    # print('第三段程序测试写出uint16图')
-    # demo3(output_root / rf'test1.tif')
-    # input('输入任意字符以继续...')
-    # print('第三段程序测试写出int64图')
-    # demo4(output_root / rf'test1.tif')
-    # input('输入任意字符以继续...')
-    # print('第三段程序测试写出多通道图')
-    # demo5(output_root / rf'test1.tif')
+    demo1(output_root / rf'test1.svs')
+    input('输入任意字符以继续...')
+    print('第二段程序测试写出RGB图')
+    demo2(output_root / rf'test2.tif')
+    input('输入任意字符以继续...')
+    print('第三段程序测试写出uint16图')
+    demo3(output_root / rf'test3.tif')
+    input('输入任意字符以继续...')
+    print('第四段程序测试写出int64图')
+    demo4(output_root / rf'test4.tif')
+    input('输入任意字符以继续...')
+    print('第五段程序测试写出多通道图')
+    demo5(output_root / rf'test5.tif')
 
 
 def demo1(path):
@@ -43,6 +43,7 @@ def demo1(path):
         mag=40,
         photometric='MINISBLACK',
         channel=0,
+        dtype=np.uint8,
     ) as writer:
         for y in range(0, h, k):
             for x in range(0, w, k):
@@ -51,11 +52,9 @@ def demo1(path):
                 writer.write(patch, x, y)
 
     # 为展示多样性支持，例程中分别使用 openslide、tiffslide、asapslide 读取缩略图
-    slide = TiffSlide(path)
-    print(slide.level_count, slide.dimension(-1), slide.downsample(-1), [slide.downsample(level) for level in range(slide.level_count)])
-    # print(slide.slide.properties)
-    thumb = slide.thumb(level=0)
-    J.plot(thumb)
+    slide = OpenSlide(path)
+    print(slide.mpp(), slide.level_count, slide.dimension(-1), slide.downsample(-1), [slide.downsample(level) for level in range(slide.level_count)])
+    J.plots([slide.thumb(level) for level in range(slide.level_count)])
 
 
 def demo2(path):
@@ -68,6 +67,7 @@ def demo2(path):
         mag=40,
         photometric='RGB',
         channel=3,
+        dtype=np.uint8,
     ) as writer:
         for y in range(0, h, k):
             for x in range(0, w, k):
@@ -77,9 +77,8 @@ def demo2(path):
 
     # 为展示多样性支持，例程中分别使用 openslide、tiffslide、asapslide 读取缩略图
     slide = AsapSlide(path)
-    print(slide.level_count, slide.dimension(-1), slide.downsample(-1))
-    thumb = slide.thumb(level=0)
-    J.plot(thumb)
+    print(slide.mpp(), slide.level_count, slide.dimension(-1), slide.downsample(-1), [slide.downsample(level) for level in range(slide.level_count)])
+    J.plots([slide.thumb(level) for level in range(slide.level_count)])
 
 
 def demo3(path):
@@ -102,7 +101,7 @@ def demo3(path):
 
     # ASAP 不能读 uint16 的图，plot 对于大于 255 的数值也不能正常显示
     slide = TiffSlide(path)
-    print(slide.level_count, slide.dimension(-1), slide.downsample(-1))
+    print(slide.mpp(), slide.level_count, slide.dimension(-1), slide.downsample(-1), [slide.downsample(level) for level in range(slide.level_count)])
     thumb = slide.thumb(level=0)
     print(thumb.max(), thumb.dtype, thumb.shape)
     J.plots([thumb // 256, thumb % 256])
@@ -128,7 +127,7 @@ def demo4(path):
 
     # 甚至可以存储 int64
     slide = TiffSlide(path)
-    print(slide.level_count, slide.dimension(-1), slide.downsample(-1))
+    print(slide.mpp(), slide.level_count, slide.dimension(-1), slide.downsample(-1), [slide.downsample(level) for level in range(slide.level_count)])
     thumb = slide.thumb(level=0)
     print(thumb.max(), thumb.dtype, thumb.shape)
 
@@ -141,7 +140,7 @@ def demo5(path):
         level_count=2,
         mpp=1,
         mag=40,
-        photometric='RGB',
+        photometric='MINISBLACK',
         channel=5,
         dtype=np.uint8
     ) as writer:
@@ -153,7 +152,7 @@ def demo5(path):
 
     # 也可以存储多通道（但这样就没办法可视化了）
     slide = TiffSlide(path)
-    print(slide.level_count, slide.dimension(-1), slide.downsample(-1))
+    print(slide.mpp(), slide.level_count, slide.dimension(-1), slide.downsample(-1), [slide.downsample(level) for level in range(slide.level_count)])
     thumb = slide.thumb(level=0)
     print(thumb.max(), thumb.dtype, thumb.shape)
 

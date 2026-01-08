@@ -10,6 +10,8 @@ import multiprocessing
 
 ndarray = np.ndarray
 V = TypeVar('V')
+path_str = Union[str, Path]
+number = Union[float, int]
 
 class JassorJsonEncoder(json.JSONEncoder):
     def __init__(self, *args, **kwargs) -> None: ...
@@ -112,18 +114,25 @@ compression_items = Literal["NONE", "LZW", "JPEG", "JPEGOLD", "ZLIB", "DEFLATE",
 photometric_items = Literal["MINISWHITE", "MINISBLACK", "RGB", "PALETTE", "MASK", "SEPARATED", "YCBCR", "CIELAB", "CFA", "LOGHUFFMAN", "LINEARRAW"]
 class SlideWriter:
     # def __init__(self, output_path: str, tile_size: int, dimensions: tuple, spacing: float, **options: str): ...
-    def __init__(self, output_path: str, tile_size: int, dimensions: tuple, mpp: float, mag: float,
-        level_count: int = 5, channel: int = 0, dtype: type = np.uint8, *,
+    def __init__(self, output_path: str, tile_size: int, dimensions: tuple, mpp: number, channel: int, dtype: type, photometric: photometric_items, *,
+        level_count: int = 5, name: str = None, format: str = None, mag: number = None,
         interpolation: interpolation_items = 'LINEAR',
         compression: compression_items = 'LZW',
-        photometric: photometric_items = 'MINISBLACK',
+        resize_anti_aliasing: Union[None, bool] = None,
         **options: str): ...
     def write(self, tile: ndarray, x: int, y: int): ...
     def finish(self): ...
     def __enter__(self): ...
     def __exit__(self, exc_type, exc_val, exc_tb): ...
 
-def image2slide(image: ndarray, out_file: str, mpp: float = 0.5) -> None: ...
+def image2slide(image: np.ndarray, output_path: path_str, mpp: number, *,
+        level_count: int = None, tile_size: int = 512, name: str = None, format: str = None, mag: number = None,
+        interpolation: interpolation_items = 'LINEAR',
+        compression: compression_items = 'LZW',
+        photometric: photometric_items = None,
+        resize_anti_aliasing: Union[None, bool] = None,
+        **options: str
+) -> None: ...
 
 class BBox:
     XYWH = 'cxcywh'

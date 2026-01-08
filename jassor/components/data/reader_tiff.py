@@ -9,7 +9,7 @@ from .interface import Reader, num
 class TiffSlide(Reader):
     def __init__(self, path: Union[str, Path]):
         super().__init__(path)
-        self.slide = tiffslide.TiffSlide(self.path)
+        self.slide = tiffslide.TiffSlide(str(self.path))
 
     @property
     def level_count(self) -> int:

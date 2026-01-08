@@ -7,8 +7,6 @@ import tifffile
 from skimage.transform import resize
 import cv2
 
-path_str = Union[str, Path]
-number = Union[float, int]
 
 photometric_map = {
     # 来自 GPT
@@ -48,17 +46,19 @@ interpolation_map = {
 
 def image2slide(
         image: np.ndarray,
-        output_path: path_str,
-        mpp: number,
+        output_path: str,
+        mpp: float,
+        *,
+        mag: float = None,
         level_count: int = None,
         tile_size: int = 512,
         compression: str = 'LZW',
-        photometric: str = 'MINISBLACK',
+        photometric: str = None,
         name: str = None,
-        mag: number = None,
+        format: str = None,
         interpolation: str = 'Nearest',
         resize_anti_aliasing: Union[None, bool] = None,
-        **param_options: str
+        **options: str
 ) -> None:
 
     H, W, channel = image.shape if len(image.shape) == 3 else (*image.shape, 0)
@@ -73,18 +73,24 @@ def image2slide(
         for level in range(level_count)
     ]
     tile_shape = (tile_size, tile_size) if channel == 0 else (tile_size, tile_size, channel)
+    resolutions = [(10000 / mpp / 2**level, 10000 / mpp / 2**level) for level in range(level_count)]
+    photometric = photometric or guess_photometric_key_strict(image)
     photometric = photometric_map[photometric.upper()]
     compression = compression_map[compression.upper()]
     interpolation = interpolation_map[interpolation.upper()]
+    format = format or Path(output_path).suffix
+    if format == '.svs':
+        desc = f"Aperio Image Library v12.0.16\n{W}x{H} ({tile_size}x{tile_size}) |AppMag = {mag}|MPP = {mpp}|Filename = {name}"
+    else:
+        desc = f'Generic pyramidal\n{W}x{H} ({tile_size}x{tile_size}) |AppMag = {mag}|MPP = {mpp}|Filename = {name}'
 
-    desc = f'Aperio Image Library Fake\nABC |AppMag = {mag}|Filename = {name}|MPP = {mpp}'
-    options = dict(
+    _options = dict(
         subifds=0, dtype=dtype,
         photometric=photometric, compression=compression,
         planarconfig='CONTIG', metadata=None,
-        **param_options
+        resolutionunit='CENTIMETER',
+        **options
     )
-
     thumb_w, thumb_h = W, H
     while max(thumb_w, thumb_h) > 2000:
         thumb_w, thumb_h = thumb_w // 2, thumb_h // 2
@@ -95,27 +101,30 @@ def image2slide(
         planarconfig='CONTIG',
         metadata=None,
         dtype=np.uint8,
-        **param_options,
+        resolution=(10000 / mpp * thumb_w / W, 10000 / mpp * thumb_h / H),
+        resolutionunit='CENTIMETER',
+        **options,
     )
 
     with tifffile.TiffWriter(output_path, bigtiff=True) as writer:
         # 检查参数是否符合匹配要求，不符合直接报错
         try:
             sig = inspect.signature(writer.write)
-            sig.bind(data=None, shape=None, tile=None, description=None, **options)  # 模拟 func(**options) 的参数匹配
+            sig.bind(data=None, shape=None, tile=None, description=None, **_options)  # 模拟 func(**options) 的参数匹配
         except TypeError as e:
             print(f"参数不匹配: {e}")
             raise e
 
         # 第 1 张，完整全图，带描述
-        writer.write(data=image, shape=shapes[0], tile=tile_shape[:2], description=desc, **options)
-        # 第 2 张，缩略图
-        thumb = make_thumb(image, thumb_w, thumb_h)
-        writer.write(data=thumb, **thumb_options)
+        writer.write(data=image, shape=shapes[0], tile=tile_shape[:2], description=desc, resolution=resolutions[0], **_options)
+        # 若 svs 格式，第 2 张为缩略图
+        if format == '.svs':
+            thumb = make_thumb(image, thumb_w, thumb_h)
+            writer.write(data=thumb, **thumb_options)
         # 降分辨率tile图，从大到小
         for level in range(1, level_count):
-            image = resize(image, shapes[level][:2], order=interpolation, anti_aliasing=resize_anti_aliasing)
-            writer.write(data=image, shape=shapes[level], tile=tile_shape[:2], description='', **options)
+            image = resize(image, shapes[level][:2], order=interpolation, anti_aliasing=resize_anti_aliasing, preserve_range=True).astype(dtype, copy=False)
+            writer.write(data=image, shape=shapes[level], tile=tile_shape[:2], description='', resolution=resolutions[level], **_options)
 
 
 def make_thumb(image: np.ndarray, thumb_w, thumb_h):
@@ -130,3 +139,35 @@ def make_thumb(image: np.ndarray, thumb_w, thumb_h):
         image = image[..., :3]
     image = cv2.resize(image, (thumb_w, thumb_h))
     return image
+
+
+def guess_photometric_key_strict(img: np.ndarray) -> str:
+    """
+    规则：
+    - 只有 (uint8/uint16) + 3通道 才判为 RGB
+    - 只有 (uint8/uint16) + 0/1通道 才判为灰度(MINISBLACK)
+    - 其它任何情况：回退到最宽泛兜底（MINISBLACK）
+      （意味着你不再关心 ASAPSlide 的兼容性，只求 TIFF 能装下）
+    返回 photometric_map 的 key
+    """
+    a = np.asarray(img)
+
+    # 只把 uint8/uint16 当作“标准视觉图像”
+    is_std_vis = a.dtype in (np.uint8, np.uint16)
+
+    # ---------- 灰度：2D 或 3D 且最后一维为 1 ----------
+    if is_std_vis:
+        if a.ndim == 2:
+            return "MINISBLACK"
+        if a.ndim == 3:
+            c = a.shape[-1]
+            if c == 1:
+                return "MINISBLACK"
+            if c == 3:
+                return "RGB"
+            # uint8/uint16 但通道不是 1/3：也算“非标准视觉格式”
+            return "MINISBLACK"
+
+    # ---------- 非标准视觉格式：统一兜底 ----------
+    #（你说“任意类型、任意通道”，这里就不做花活了）
+    return "MINISBLACK"
