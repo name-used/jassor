@@ -3,7 +3,7 @@ import sys
 import shapely
 from shapely.geometry.base import BaseGeometry
 
-from .definition import Shape, Single, Multi, NoParametersException, CoordinatesNotLegalException, number
+from .definition import Shape, Single, Multi, NoParametersException, CoordinatesNotLegalException, NUMBER, CONFIG
 from .impl_multi_complex import MultiComplexPolygon
 from .normalizer import deintersect
 from shapely.ops import unary_union
@@ -23,10 +23,10 @@ class MultiSimplePolygon(MultiComplexPolygon):
 
     def __init__(
             self,
-            outers: List[List[Tuple[number, number]]] = None,
+            outers: List[List[Tuple[NUMBER, NUMBER]]] = None,
             geo: BaseGeometry = None,
             singles: Iterable[Shape] = None,
-            from_p: List[List[Tuple[number, number]]] = None,
+            from_p: List[List[Tuple[NUMBER, NUMBER]]] = None,
             reverse: bool = False,
     ):
         if geo is not None:
@@ -45,7 +45,7 @@ class MultiSimplePolygon(MultiComplexPolygon):
             try:
                 geo = unary_union(geo)
             except Exception as e:
-                sys.stderr.write(f'geometry invalid caused by {e}\n')
+                CONFIG.WARN_PIPE and CONFIG.WARN_PIPE.write(f'geometry invalid caused by {e}\n')
             geo = geo.buffer(0)
 
             if geo.is_empty:

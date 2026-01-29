@@ -1,3 +1,4 @@
+import gc
 import numpy as np
 from .interface import Reader, num
 from PIL import Image
@@ -7,9 +8,13 @@ Image.MAX_IMAGE_PIXELS = 16_0000_0000
 
 
 class ImageSlide(Reader):
-    def __init__(self, path: Union[str, Path], base_mpp: float = 0.5, force_convert: str = 'RGB'):
-        super().__init__(path)
-        self.image = Image.open(path)
+    def __init__(self, path: Union[str, Path, Image.Image], base_mpp: float = 0.5, force_convert: str = 'RGB'):
+        if isinstance(path, Image.Image):
+            super().__init__('')
+            self.image = path
+        else:
+            super().__init__(path)
+            self.image = Image.open(path)
         if force_convert:
             self.image = self.image.convert('RGB')
         self._base_mpp = base_mpp
@@ -34,6 +39,14 @@ class ImageSlide(Reader):
     def downsample(self, level: int = 0) -> float:
         return 1
 
-    def region(self, level: int, left: num, up: num, right: num, down: num) -> np.ndarray:
+    def region(self, level: int, left: num, up: num, right: num, down: num, as_array: bool = True):
         patch = self.image.crop((left, up, right, down))
-        return np.asarray(patch)
+        if as_array:
+            return np.asarray(patch)  # type: ignore[arg-type]
+        else:
+            return patch
+
+    def close(self):
+        self.image = None
+        gc.collect()
+        return self

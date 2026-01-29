@@ -1,6 +1,7 @@
 import abc
-from typing import Tuple, Union
+from typing import Tuple, Union, Literal, overload
 import numpy as np
+from PIL.Image import Image
 from pathlib import Path
 
 num = Union[float, int]
@@ -31,8 +32,16 @@ class Reader:
     def downsample(self, level: int = 0) -> float:
         raise NotImplemented
 
+    @overload
+    def region(self, level: int, left: num, up: num, right: num, down: num, as_array: Literal[False] = True) -> np.ndarray:
+        raise NotImplemented
+
+    @overload
+    def region(self, level: int, left: num, up: num, right: num, down: num, as_array: Literal[True] = False) -> Image:
+        raise NotImplemented
+
     @abc.abstractmethod
-    def region(self, level: int, left: num, up: num, right: num, down: num) -> np.ndarray:
+    def region(self, level: int, left: num, up: num, right: num, down: num, as_array: bool = True):
         raise NotImplemented
 
     def thumb(self, level: int = -1) -> np.ndarray:
@@ -40,22 +49,5 @@ class Reader:
         w, h = self.dimension(level)
         return self.region(level, 0, 0, w, h)
 
-
-# class Dataset(torch.utils.data.Dataset, abc.ABC):
-#     def __init__(self, source: Any):
-#         super().__init__()
-#         self.source = source
-#         self.samples = []
-#
-#     def __len__(self):
-#         return len(self.samples)
-#
-#     def __getitem__(self, item):
-#         return self.load(self.samples[item])
-#
-#     def __iter__(self):
-#         for i in range(len(self)):
-#             yield self[i]
-#
-#     @abc.abstractmethod
-#     def load(self, sample) -> Any: pass
+    def close(self):
+        return self

@@ -1,6 +1,8 @@
+import gc
 from typing import Tuple, Union
 from pathlib import Path
 import numpy as np
+from PIL import Image
 import multiresolutionimageinterface as mir
 from .interface import Reader, num
 
@@ -25,11 +27,19 @@ class AsapSlide(Reader):
     def downsample(self, level: int = 0) -> float:
         return self.slide.getLevelDownsample(level % self.level_count)
 
-    def region(self, level: int, left: num, up: num, right: num, down: num) -> np.ndarray:
+    def region(self, level: int, left: num, up: num, right: num, down: num, as_array: bool = True):
         downsample = self.downsample(level)
         l0 = round(left * downsample)
         u0 = round(up * downsample)
         w = round(right - left)
         h = round(down - up)
         patch = self.slide.getUCharPatch(startX=l0, startY=u0, width=w, height=h, level=level)
-        return np.asarray(patch)
+        if as_array:
+            return np.asarray(patch)
+        else:
+            return Image.fromarray(patch)
+
+    def close(self):
+        self.slide = None
+        gc.collect()
+        return self

@@ -1,4 +1,4 @@
-from .definition import Shape, Single as SingleShape, Multi as MultiShape, ConvertMulti2SingleException
+from .definition import Shape, Single as SingleShape, Multi as MultiShape, ConvertMulti2SingleException, CONFIG
 from .impl_multi_simple import MultiSimplePolygon
 from .impl_multi_complex import MultiComplexPolygon
 from .impl_region import Region
@@ -17,6 +17,7 @@ EMPTY = Shape.EMPTY
 FULL = Shape.FULL
 
 __all__ = [
+    'CONFIG',
     'Shape',
     'SingleShape',
     'Region',

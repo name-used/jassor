@@ -9,7 +9,7 @@ import torch
 # patches = patches.squeeze(0)  # shape: (5998, 5998, 3, 3, 3)
 
 
-def process(image: np.ndarray, s: int = 3, std_thresh: float = 5., b: int = 13, k: int = 17):
+def process(image: np.ndarray, s: int = 3, b: int = 13, pmin: int = 1, pmax: int = 99):
     # 手动扩圈
     image = np.pad(image, [(1, 1), (1, 1), (0, 0)])
     image[0, :, :] = image[1, :, :]
@@ -26,11 +26,10 @@ def process(image: np.ndarray, s: int = 3, std_thresh: float = 5., b: int = 13, 
     mask = uniform_filter(mask, size=(b, b))
     mask = uniform_filter(mask, size=(b, b))
     mask = uniform_filter(mask, size=(b, b))
-    # 再阈值截断二值化
-    mask = (mask > std_thresh).astype(np.uint8)
-    # 最后做一个腐蚀膨胀
-    k = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (k, k))
-    mask = cv2.dilate(mask, k, dst=mask, iterations=1)
-    mask = cv2.erode(mask, k, dst=mask, iterations=2)
-    mask = cv2.dilate(mask, k, dst=mask, iterations=1)
-    return mask
+
+    pmin = np.percentile(mask, pmin)
+    pmax = np.percentile(mask, pmax)
+    mask = (mask - pmin) / (pmax - pmin + 1e-19)
+    mask = mask.clip(0, 1) * 255
+    mask = mask.astype(np.uint8)
+    return mask.round().astype(np.uint8)

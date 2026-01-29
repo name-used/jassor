@@ -5,7 +5,7 @@ import sys
 import shapely
 from shapely.ops import unary_union
 
-from .definition import Shape, COORDS, CoordinatesNotLegalException
+from .definition import Shape, COORDS, CONFIG
 from .impl_circle import Circle
 from .impl_single_simple import SimplePolygon
 from .impl_single_complex import ComplexPolygon
@@ -213,7 +213,7 @@ def create_from_poly_coords(poly_coords: Union[List[List[COORDS]], List[Tuple[CO
             continue
         if len(outers) > 1:
             # 单一轮廓修复后变成多个轮廓，说明轮廓存在自相交问题，此时需拆分外轮廓，并按配位关系重组内轮廓
-            sys.stderr.write(f'creating multi polygon found self-intersect coord=={outer}\n')
+            CONFIG.WARN_PIPE and CONFIG.WARN_PIPE.write(f'creating multi polygon found self-intersect coord=={outer}\n')
             polygons = [shapely.Polygon(shell=outer, holes=[]) for outer in outers]
             coords = [(polygon.exterior.coords, [inner for inner in inners if not polygon.disjoint(shapely.LineString(inner))]) for polygon in polygons]
         else:
@@ -226,7 +226,7 @@ def create_from_poly_coords(poly_coords: Union[List[List[COORDS]], List[Tuple[CO
     try:
         geo = unary_union(geo)
     except Exception as e:
-        sys.stderr.write(f'geometry invalid caused by {e}\n')
+        CONFIG.WARN_PIPE and CONFIG.WARN_PIPE.write(f'geometry invalid caused by {e}\n')
     geo = geo.buffer(0)
 
     if geo.is_empty:

@@ -114,7 +114,7 @@ compression_items = Literal["NONE", "LZW", "JPEG", "JPEGOLD", "ZLIB", "DEFLATE",
 photometric_items = Literal["MINISWHITE", "MINISBLACK", "RGB", "PALETTE", "MASK", "SEPARATED", "YCBCR", "CIELAB", "CFA", "LOGHUFFMAN", "LINEARRAW"]
 class SlideWriter:
     # def __init__(self, output_path: str, tile_size: int, dimensions: tuple, spacing: float, **options: str): ...
-    def __init__(self, output_path: str, tile_size: int, dimensions: tuple, mpp: number, channel: int, dtype: type, photometric: photometric_items, *,
+    def __init__(self, output_path: path_str, tile_size: int, dimensions: tuple, mpp: number, channel: int, dtype: type, photometric: photometric_items, *,
         level_count: int = 5, name: str = None, format: str = None, mag: number = None,
         interpolation: interpolation_items = 'LINEAR',
         compression: compression_items = 'LZW',

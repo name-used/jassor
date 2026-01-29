@@ -1,14 +1,27 @@
 from __future__ import annotations
+
 import abc
+import sys
+from dataclasses import dataclass
 from typing import Union, List, Tuple
+
 import numpy as np
 import shapely
 from shapely.geometry.base import BaseGeometry
+
 from ..interface import ShapeInterface
 
-MIN_AREA = 1e-7
-
+NUMBER = Union[int, float]
 COORDS = Union[List[Tuple[float, float]], np.ndarray]
+
+
+@dataclass
+class _Config:
+    MIN_AREA = 1e-7
+    WARN_PIPE = sys.stderr
+
+
+CONFIG = _Config()
 
 
 class Shape(ShapeInterface['Shape'], abc.ABC):
@@ -115,10 +128,12 @@ class Single(Shape, abc.ABC):
                 if abs(1 - geos[0].area / geo.area) < ConvertMulti2SingleException.thresh:
                     geo = geos[0]
                 else:
-                    raise ConvertMulti2SingleException(f'Multi 轮廓长度为 {len(geo.geoms)}，'
-                                                       f'其中最大的单一轮廓面积是 {geos[0].area}，总面积是 {geo.area}，'
-                                                       f'占比为 {geos[0].area / geo.area} 低于{1 - ConvertMulti2SingleException.thresh}，'
-                                                       f'不能转换')
+                    raise ConvertMulti2SingleException(
+                        f'Multi 轮廓长度为 {len(geo.geoms)}，'
+                        f'其中最大的单一轮廓面积是 {geos[0].area}，总面积是 {geo.area}，'
+                        f'占比为 {geos[0].area / geo.area} 低于{1 - ConvertMulti2SingleException.thresh}，'
+                        f'不能转换'
+                    )
             else:
                 # 报错模式
                 raise ConvertMulti2SingleException(f'Multi 轮廓长度为 {len(geo.geoms)}，不能转换')
@@ -186,6 +201,3 @@ class NoParametersException(Exception):
 
 class NoSupportMethodException(Exception):
     pass
-
-
-number = Union[int, float]

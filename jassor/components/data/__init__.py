@@ -8,6 +8,7 @@ my_modules = {
     'trans_linear': '.utils',
     'sample_image': '.utils',
     'sample_slide': '.utils',
+    'find_sites': '.utils',
     'AsapSlide': '.reader_asap',
     'OpenSlide': '.reader_openslide',
     'ImageSlide': '.reader_image',

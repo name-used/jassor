@@ -102,7 +102,7 @@ class SlideWriter:
         )
 
         # 这个必须按流式方法，一次性写入，我需要手动管理一个类似 ASAP 写图时的缓冲区的东西
-        self._writer = tifffile.TiffWriter(output_path, bigtiff=True)
+        self._writer = tifffile.TiffWriter(str(output_path), bigtiff=True)
         self._buffer_path = f'{output_path}.buffer'
         self._buffer = open(self._buffer_path, 'wb')
         self._info_cache = {}

@@ -2,6 +2,7 @@ from .shapely_impl import *
 
 
 __all__ = [
+    'CONFIG',
     'Shape',
     'EMPTY',
     'FULL',

@@ -1,26 +1,22 @@
 import os.path
-from typing import Union
 from pathlib import Path
-import numpy as np
-from PIL import Image
-from .reader_numpy import NumpySlide
+from typing import Union, Optional, Type
+
 from .reader_image import ImageSlide
+from .reader_numpy import NumpySlide
 
+SlideType: Optional[Type] = None
 
-SlideType = None
-try:
-    from .reader_openslide import OpenSlide
-    SlideType = OpenSlide
-except ImportError:
+for _import in (
+        lambda: __import__(__name__.rsplit(".", 1)[0] + ".reader_openslide", fromlist=["OpenSlide"]).OpenSlide,
+        lambda: __import__(__name__.rsplit(".", 1)[0] + ".reader_asap", fromlist=["AsapSlide"]).AsapSlide,
+        lambda: __import__(__name__.rsplit(".", 1)[0] + ".reader_tiff", fromlist=["TiffSlide"]).TiffSlide,
+):
     try:
-        from .reader_asap import AsapSlide
-        SlideType = AsapSlide
+        SlideType = _import()
+        break
     except ImportError:
-        try:
-            from .reader_tiff import TiffSlide
-            SlideType = TiffSlide
-        except ImportError:
-            pass
+        pass
 
 
 def load(path: Union[str, Path]):

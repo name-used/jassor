@@ -3,7 +3,7 @@ import sys
 import shapely
 from shapely.geometry.base import BaseGeometry
 
-from .definition import Shape, Single, CoordinatesNotLegalException, NoParametersException
+from .definition import Shape, Single, CoordinatesNotLegalException, NoParametersException, CONFIG
 from .impl_single_complex import ComplexPolygon
 from .normalizer import deintersect
 
@@ -46,7 +46,7 @@ class SimplePolygon(ComplexPolygon):
             if len(polygons) > 1:
                 # 单一轮廓修复后变成多个轮廓，说明轮廓存在自相交问题，此时只保留最大轮廓
                 polygons.sort(key=lambda poly: poly.area, reverse=True)
-                sys.stderr.write(f'creating single polygon with multi-polygon drop coords with area {[poly.area for poly in polygons]}\n')
+                CONFIG.WARN_PIPE and CONFIG.WARN_PIPE.write(f'creating single polygon with multi-polygon drop coords with area {[poly.area for poly in polygons]}\n')
             geo = polygons[0]
         else:
             # 没有任何参数的话，要报个错

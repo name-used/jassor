@@ -1,12 +1,10 @@
-import sys
 from typing import List, Tuple
 
 import shapely
 from shapely.geometry.base import BaseGeometry
 
-from .definition import Shape, Single, Multi, CoordinatesNotLegalException, NoParametersException
+from .definition import Shape, Single, Multi, CoordinatesNotLegalException, NoParametersException, CONFIG
 from .impl_base import Base
-from . import functional as F
 from .normalizer import deintersect
 from shapely.ops import unary_union
 
@@ -52,7 +50,7 @@ class ComplexPolygon(Base, Single):
                 # 单一轮廓修复后变成多个轮廓，说明轮廓存在自相交问题，此时只保留最大轮廓
                 polygons = [shapely.Polygon(shell=coord, holes=[]) for coord in coords]
                 polygons.sort(key=lambda poly: poly.area, reverse=True)
-                sys.stderr.write(f'creating single polygon with multi-polygon drop coords with area {[poly.area for poly in polygons]}\n')
+                CONFIG.WARN_PIPE and CONFIG.WARN_PIPE.write(f'creating single polygon with multi-polygon drop coords with area {[poly.area for poly in polygons]}\n')
                 polygon = polygons[0]
             else:
                 polygon = shapely.Polygon(shell=coords[0], holes=[])
@@ -65,14 +63,14 @@ class ComplexPolygon(Base, Single):
             try:
                 geo = unary_union(geo)
             except Exception as e:
-                sys.stderr.write(f'geometry invalid caused by {e}\n')
+                CONFIG.WARN_PIPE and CONFIG.WARN_PIPE.write(f'geometry invalid caused by {e}\n')
             geo = geo.buffer(0)
             if geo.is_empty:
                 # 此时存在两种可能性，一种是空，这种没办法，只能报错处理
                 raise CoordinatesNotLegalException(f'creating single polygon with geo=={type(geo)}, pls check outer&inners:{outer}-{inners}')
             # 如果图案断开，只取面积最大的（因为我们断言这是一个简单单连通图案）
             if isinstance(geo, shapely.MultiPolygon):
-                sys.stderr.write(f'creating single polygon with multi-polygon drop coords with area {sorted([g.area for g in geo.geoms], reverse=True)}\n')
+                CONFIG.WARN_PIPE and CONFIG.WARN_PIPE.write(f'creating single polygon with multi-polygon drop coords with area {sorted([g.area for g in geo.geoms], reverse=True)}\n')
                 geo = max(geo.geoms, key=lambda g: g.area)
             elif not isinstance(geo, shapely.Polygon):
                 raise CoordinatesNotLegalException(f'wrong geometry type {type(geo)}, pls check outer&inners:{outer}-{inners}')

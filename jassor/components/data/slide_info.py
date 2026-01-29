@@ -9,9 +9,9 @@ import tifffile
 class SlideInfo:
     """只负责描述“文件里真实存的形制”"""
     dtype: np.dtype
-    channels: int          # 0->[H,W]; 1->[H,W,1]; 3/4->[H,W,C]
-    mode: Optional[str]    # 'GRAY' / 'RGB' / 'RGBA' / None
-    shape: Tuple[int, ...] # level 对应的完整 shape
+    channels: int           # 0->[H,W]; 1->[H,W,1]; 3/4->[H,W,C]
+    mode: Optional[str]     # 'GRAY' / 'RGB' / 'RGBA' / None
+    shape: Tuple[int, ...]  # level 对应的完整 shape
 
     @property
     def color(self):

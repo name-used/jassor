@@ -1,13 +1,19 @@
+import gc
 import numpy as np
+from PIL import Image
 from typing import Tuple, Union
 from pathlib import Path
 from .interface import Reader, num
 
 
 class NumpySlide(Reader):
-    def __init__(self, path: Union[str, Path], base_mpp: float = 0.5):
-        super().__init__(path)
-        self.image = np.load(path)
+    def __init__(self, path: Union[str, Path, np.ndarray], base_mpp: float = 0.5):
+        if isinstance(path, np.ndarray):
+            super().__init__('')
+            self.image = path
+        else:
+            super().__init__(path)
+            self.image = np.load(path)
         self.dim = len(self.image.shape)
         self._base_mpp = base_mpp
 
@@ -32,7 +38,7 @@ class NumpySlide(Reader):
     def downsample(self, level: int = 0) -> float:
         return 1
 
-    def region(self, level: int, left: num, up: num, right: num, down: num) -> np.ndarray:
+    def region(self, level: int, left: num, up: num, right: num, down: num, as_array: bool = True):
         left = round(left)
         up = round(up)
         right = round(right)
@@ -44,6 +50,15 @@ class NumpySlide(Reader):
         md = min(h, down)
         patch = self.image[up: down, left: right]
         if ml == left and mu == up and mr == right and md == down:
-            return patch.copy()
-        patch = np.pad(patch, [(mu-up, down-md), (ml-left, right-mr), (0, 0)][:self.dim])
-        return patch
+            patch = patch.copy()
+        else:
+            patch = np.pad(patch, [(mu-up, down-md), (ml-left, right-mr), (0, 0)][:self.dim])
+        if as_array:
+            return patch
+        else:
+            return Image.fromarray(patch)
+
+    def close(self):
+        self.image = None
+        gc.collect()
+        return self

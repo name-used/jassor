@@ -4,7 +4,7 @@ from typing import Tuple, Union, Optional, IO, List
 import shapely
 from shapely.geometry.base import BaseGeometry
 
-from .definition import Shape, Single, Multi, MIN_AREA
+from .definition import Shape, Single, Multi, CONFIG
 
 
 """
@@ -67,7 +67,7 @@ def norm_multi(geo: BaseGeometry, reverse: bool) -> Multi:
 
 def norm_geo(geo: BaseGeometry) -> Optional[BaseGeometry]:
     # 输入检查，处理各种妖魔鬼怪，这里比较重要的是最小面积阈值，需要在每次使用时定义
-    if geo is None or geo.is_empty or geo.area <= MIN_AREA:
+    if geo is None or geo.is_empty or geo.area <= CONFIG.MIN_AREA:
         return None
     # geo 可能存在自相交的曲线, 也可能 multi_geo = [g1, g2] 并且 g1、g2 相交
     # buff(0) 好像可以消灭一切牛鬼蛇神, unary_union 则只能解决后者，遇到前者直接报错
