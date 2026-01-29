@@ -17,7 +17,7 @@ if shapely_ok:
     from shapely.geometry.base import BaseGeometry
 
 
-def plot(item: Any, title: str = None, window_name: str = 'jassor_plot', save_to: str = None, dpi: int = 1000, ticks: bool = True):
+def plot(item: Any, title: str = None, window_name: str = 'jassor_plot', save_to: str = None, dpi: int = 1000, ticks: bool = False):
     title = title or ''
     fig = plt.figure()
     ax = fig.add_subplot(111)
@@ -38,7 +38,7 @@ def plot(item: Any, title: str = None, window_name: str = 'jassor_plot', save_to
     plt.close(fig=fig)
 
 
-def plots(items: List[Any], titles: List[str] = None, window_name: str = 'jassor_plot', save_to: str = None, dpi: int = 1000, ticks: bool = True):
+def plots(items: List[Any], titles: List[str] = None, window_name: str = 'jassor_plot', save_to: str = None, dpi: int = 1000, ticks: bool = False):
     n = len(items)
     titles = (titles or []) + [''] * n
     # 计算行列数量

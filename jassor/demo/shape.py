@@ -1,5 +1,8 @@
-import jassor.utils as J
+import traceback
+
 import jassor.shape as S
+import jassor.utils as J
+from shape_test_data import SINGLE_SIMPLE_CASES, MULTI_SIMPLE_CASES, SINGLE_COMPLEX_CASES, MULTI_COMPLEX_CASES
 
 
 def main():
@@ -17,6 +20,9 @@ def main():
     input('输入任意字符以继续...')
     print('第五段程序描述图形结构')
     demo5()
+    input('输入任意字符以继续...')
+    print('第六段程序测试代码容错性')
+    demo6()
     # shape.reversed 属性此处不做演示，其大致思路就是补集
     # 例如，c1 = Circle(0, 0, 1) 被 c2 = Circle(0, 0, 2) 完全涵盖，因此 c2.if_contain(c1) == True
     # 取 c2 的补集 ~c2，显然 c1 和 c2 完全不相交，因此有 c1.is_joint(~c2) == False
@@ -27,11 +33,13 @@ def demo1():
     region = S.Region(left=0, up=0, right=1, down=1)
     circle = S.Circle(x=0, y=0, r=1)
     simple_polygon = S.SimplePolygon(outer=[(0, 0), (1, 0), (1, 1)])
-    complex_polygon = S.ComplexPolygon(outer=[(0, 0), (10, 0), (10, 10)], inners=[
-        [(2, 1), (3, 1), (3, 2)], [(4, 3), (5, 3), (5, 4)], [(6, 5), (7, 5), (7, 6)]
-    ])
-    multi_simple_polygon = S.MultiSimplePolygon(shapes=[simple_polygon, simple_polygon + (3, 0)])
-    multi_complex_polygon = S.MultiComplexPolygon(shapes=[complex_polygon, complex_polygon + (20, 0)])
+    complex_polygon = S.ComplexPolygon(
+        outer=[(0, 0), (10, 0), (10, 10)], inners=[
+            [(2, 1), (3, 1), (3, 2)], [(4, 3), (5, 3), (5, 4)], [(6, 5), (7, 5), (7, 6)]
+        ]
+    )
+    multi_simple_polygon = S.MultiSimplePolygon(singles=[simple_polygon, simple_polygon + (3, 0)])
+    multi_complex_polygon = S.MultiComplexPolygon(singles=[complex_polygon, complex_polygon + (20, 0)])
 
     for shape in [S.EMPTY, S.FULL, region, circle, simple_polygon, complex_polygon, multi_simple_polygon, multi_complex_polygon]:
         print(shape)
@@ -47,7 +55,7 @@ def demo2():
         assert isinstance(s, S.SimplePolygon)
         assert isinstance(s, S.ComplexPolygon)
         assert isinstance(s, S.SingleShape)
-    ms = S.MultiSimplePolygon(shapes=[region, region + (3, 0)])
+    ms = S.MultiSimplePolygon(singles=[region, region + (3, 0)])
     assert isinstance(ms, S.MultiComplexPolygon)
     assert isinstance(ms, S.MultiShape)
     for s in [S.EMPTY, S.FULL, region, circle, ms]:
@@ -94,45 +102,51 @@ def demo3():
     print(s)
     print(s * 2)  # 放大
     print(s / 2)  # 缩小
-    print(s + (1, 0))   # 平移
-    J.plots([
-        s,
-        s ** 15,    # 旋转 —— 角度制
-        s.copy().flip_x(x0=0),    # 水平镜像
-        s.copy().flip_y(y0=0),    # 垂直镜像
-        s.copy().flip(degree=45, origin=(0, 0)),  # 斜镜像
-    ])
+    print(s + (1, 0))  # 平移
+    J.plots(
+        [
+            s,
+            s ** 15,  # 旋转 —— 角度制
+            s.copy().flip_x(x0=0),  # 水平镜像
+            s.copy().flip_y(y0=0),  # 垂直镜像
+            s.copy().flip(degree=45, origin=(0, 0)),  # 斜镜像
+        ]
+    )
     # 集合论运算
     s = S.Circle(0, 0, 1)
     assert s.is_joint(s + (1, 0))  # 判定相交
     assert s.if_contain(s / 2)  # 判定包含
-    J.plots([
-        s,
-        s & s + (1, 0),  # 交集运算
-        s | s + (3, 0),  # 并集运算
-        s << s + (3, 0),  # 合集运算，当且仅当两轮廓相交时才执行并运算
-        s << s + (1, 0),  # 合集运算，当且仅当两轮廓相交时才执行并运算
-        s >> s / 2,  # 差集运算
-    ])
+    J.plots(
+        [
+            s,
+            s & s + (1, 0),  # 交集运算
+            s | s + (3, 0),  # 并集运算
+            s << s + (3, 0),  # 合集运算，当且仅当两轮廓相交时才执行并运算
+            s << s + (1, 0),  # 合集运算，当且仅当两轮廓相交时才执行并运算
+            s >> s / 2,  # 差集运算
+        ]
+    )
 
     # 形态学运算
     s = S.create_sector(radius=10, degree=30, num=100) >> S.create_regular_polygon(n=3, len_side=10) / 3 + (2, 1)
-    J.plots([
-        s,
-        s.simplify(tolerance=0.05),  # 轮廓化简
-        s.convex,   # 凸包络，
-        s.mini_rect,   # 密接矩形，
-        s.region,   # 矩形域，
-        s.smooth(0.5),   # 平滑，
-    ])
+    J.plots(
+        [
+            s,
+            s.simplify(tolerance=0.05),  # 轮廓化简
+            s.convex,  # 凸包络，
+            s.mini_rect,  # 密接矩形，
+            s.region,  # 矩形域，
+            s.smooth(0.5),  # 平滑，
+        ]
+    )
 
     # 几何属性
     s = S.Circle(x=0, y=0, r=1, num=1000)
     print(s)
-    print(s.center)     # 形心
-    print(s.area)       # 面积
+    print(s.center)  # 形心
+    print(s.area)  # 面积
     print(s.perimeter)  # 周长
-    print(s.bounds)     # 矩形域
+    print(s.bounds)  # 矩形域
 
 
 def demo4():
@@ -172,10 +186,10 @@ def demo5():
 
     # 点分解，将图形分解为点列数组
     # outer = inner = [point] = [(x, y)]
-    print(s1.sep_p())   # outer 只有一个外轮廓
-    print(s2.sep_p())   # outer, inners = [inner] 一个外轮廓和一组内轮廓
-    print(s3.sep_p())   # outers = [outer] 一组外轮廓
-    print(s4.sep_p())   # outers, inners, adjacencies = [int] 外轮廓、内轮廓和邻接数组
+    print(s1.sep_p())  # outer 只有一个外轮廓
+    print(s2.sep_p())  # outer, inners = [inner] 一个外轮廓和一组内轮廓
+    print(s3.sep_p())  # outers = [outer] 一组外轮廓
+    print(s4.sep_p())  # outers, inners, adjacencies = [int] 外轮廓、内轮廓和邻接数组
     print('==========================')
 
     # 图像可以序列化
@@ -190,6 +204,58 @@ def demo5():
         print(S.load(f))
     with open('./my_shape.pkl', 'rb') as f:
         print(S.loadb(f))
+
+
+def demo6():
+    for key, item in SINGLE_SIMPLE_CASES.items():
+        if key == 'S004_DEGEN_COLLINEAR_AREA0': continue
+        print(f'single_simple - {key} - {item["desc"]}')
+        try:
+            outer = item['outer']
+            shape = S.SimplePolygon(outer=outer)
+            J.plots([outer, shape])
+        except Exception as e:
+            traceback.print_exc()
+
+    for key, item in SINGLE_COMPLEX_CASES.items():
+        if key == 'C111_HOLE_COVERS_SHELL': continue
+        print(f'single_complex - {key} - {item["desc"]}')
+        try:
+            outer = item['outer']
+            inners = item['inners']
+            shape = S.ComplexPolygon(outer=outer, inners=inners)
+            J.plots([[outer, *inners], shape])
+        except Exception as e:
+            traceback.print_exc()
+
+    for key, item in MULTI_SIMPLE_CASES.items():
+        if key == 'M252_COORD_INF': continue
+        if key == 'M231_TOO_FEW_POINTS': continue
+        if key == 'M241_DEGEN_COLLINEAR_AREA0': continue
+        print(f'multi_simple - {key} - {item["desc"]}')
+        try:
+            outers = item['outers']
+            shape = S.MultiSimplePolygon(outers=outers)
+            J.plots([outers, shape])
+        except Exception as e:
+            traceback.print_exc()
+
+    for key, item in MULTI_COMPLEX_CASES.items():
+        if key == 'MC333_HOLE_COVERS_SHELL': continue
+        if key == 'MC342_ADJ_INDEX_OUT_OF_RANGE': continue
+        if key == 'MC351_DEGEN_OUTER_COLLINEAR_AREA0': continue
+        if key == 'MC352_DEGEN_OUTER_TOO_FEW_POINTS': continue
+        if key == 'MC362_COORD_INF_IN_INNER': continue
+        if key == 'MC381_HOLE_SPANS_TWO_SHELLS': continue
+        print(f'multi_complex - {key} - {item["desc"]}')
+        try:
+            outers = item['outers']
+            inners = item['inners']
+            adjacencies = item['adjacencies']
+            shape = S.MultiComplexPolygon(outers=outers, inners=inners, adjacencies=adjacencies)
+            J.plots([[*outers, *inners], shape])
+        except Exception as e:
+            traceback.print_exc()
 
 
 main()

@@ -9,6 +9,8 @@ from .impl_empty import Empty
 from .impl_full import Full
 from .polygon_creators import create_polygon, create_triangle, create_regular_polygon, create_sector
 from .functional import load, loads, loadb
+from .polygon_creators import create_from_adjacencies, create_from_hierarchy, create_from_poly_coords
+from .polygon_converter import convert_mask2shape, convert_shape2mask, convert_shapes2geojson, convert_geojson2shapes
 
 
 EMPTY = Shape.EMPTY
@@ -34,6 +36,13 @@ __all__ = [
     'load',
     'loads',
     'loadb',
+    'create_from_adjacencies',
+    'create_from_hierarchy',
+    'create_from_poly_coords',
+    'convert_mask2shape',
+    'convert_shape2mask',
+    'convert_shapes2geojson',
+    'convert_geojson2shapes',
 ]
 
 '''

@@ -1,10 +1,12 @@
 from typing import List, Tuple, Iterable
+import sys
 import shapely
 from shapely.geometry.base import BaseGeometry
 
-from .definition import Shape, Single, Multi, NoParametersException, CoordinatesNotLegalException
+from .definition import Shape, Single, Multi, NoParametersException, CoordinatesNotLegalException, number
 from .impl_multi_complex import MultiComplexPolygon
-from . import functional as F
+from .normalizer import deintersect
+from shapely.ops import unary_union
 
 
 class MultiSimplePolygon(MultiComplexPolygon):
@@ -21,37 +23,45 @@ class MultiSimplePolygon(MultiComplexPolygon):
 
     def __init__(
             self,
-            outers: List[Tuple[float, float]] = None,
+            outers: List[List[Tuple[number, number]]] = None,
             geo: BaseGeometry = None,
-            shapes: Iterable[Shape] = None,
-            from_p: List[Tuple[float, float]] = None,
+            singles: Iterable[Shape] = None,
+            from_p: List[List[Tuple[number, number]]] = None,
             reverse: bool = False,
     ):
         if geo is not None:
             assert isinstance(geo, shapely.MultiPolygon), 'geo 必须是 MultiPolygon'
             assert all(g.boundary.geom_type.upper() == 'LINESTRING' for g in geo.geoms), 'geo 必须是单连通的'
-        elif shapes is not None:
-            assert all(isinstance(shape, (Single.SIMPLE, Multi.SIMPLE)) for shape in shapes if shape), 'shapes 必须由 SIMPLE（单连通） 图像构成'
-        else:
-            if from_p is not None:
-                outers = from_p
-            if outers is None:
-                # 没有任何参数的话，要报个错
-                raise NoParametersException(f'Any of such parameters have to be provided: (outer, *inners), geo, single, from_p')
-
-            # 对用户输入进行检查和修复
+        elif singles is not None:
+            assert all(isinstance(single, (Single.SIMPLE, Multi.SIMPLE)) for single in singles if single), 'shapes 必须由 SIMPLE（单连通） 图像构成'
+        elif from_p is not None:
             geo = shapely.MultiPolygon(polygons=[(outer, []) for outer in outers])
-            geo = F.norm_geo(geo)
-            # 创建时要求轮廓必须合法
-            if geo is None:
-                raise CoordinatesNotLegalException(f'creating single polygon with geo=={type(geo)}')
-            elif isinstance(geo, shapely.Polygon):
-                geo = shapely.MultiPolygon(polygons=[geo])
-            # 还得是单连通的
-            if any(g.interiors for g in geo.geoms):
-                raise CoordinatesNotLegalException(f'MultiSimplePolygon not allowed interiors coordinates with geo interiors nums: {list(len(g.interiors) for g in geo.geoms)}')
+        elif from_p is not None:
+            geo = shapely.MultiPolygon(polygons=[(outer, []) for outer in from_p])
+        elif outers is not None:
+            _outers = sum([deintersect(outer) for outer in outers], [])
+            # 对用户输入进行检查和修复
+            geo = shapely.MultiPolygon(polygons=[(outer, []) for outer in _outers])
+            try:
+                geo = unary_union(geo)
+            except Exception as e:
+                sys.stderr.write(f'geometry invalid caused by {e}\n')
+            geo = geo.buffer(0)
 
-        super().__init__(outers=None, geo=geo, shapes=shapes, reverse=reverse)
+            if geo.is_empty:
+                # geo 是空，这种没办法，只能报错处理
+                raise CoordinatesNotLegalException(f'creating single polygon with geo=={type(geo)}, pls check outers:{outers}')
+            elif isinstance(geo, shapely.Polygon):
+                # 如果 geo 是单个图形，那为了接口对齐，我也依然只能把它搞成 multi 的格式
+                geo = shapely.MultiPolygon(polygons=[geo])
+            # unary_union 和 buffer 之后可能会再次出现洞洞之类的，所以再取一遍外轮廓
+            # outer_geos = [shapely.Polygon(g.exterior.coords) for g in geo.geoms]
+            geo = shapely.MultiPolygon([(g.exterior.coords, []) for g in geo.geoms])
+        else:
+            # 没有任何参数的话，要报个错
+            raise NoParametersException(f'Any of such parameters have to be provided: (outer, *inners), geo, single, from_p')
+
+        super().__init__(outers=None, geo=geo, singles=singles, reverse=reverse)
 
     # def merge(self, shape: Shape) -> Multi:
     #     # 合集运算

@@ -20,4 +20,11 @@ __all__ = [
     'load',
     'loads',
     'loadb',
+    'create_from_adjacencies',
+    'create_from_hierarchy',
+    'create_from_poly_coords',
+    'convert_mask2shape',
+    'convert_shape2mask',
+    'convert_shapes2geojson',
+    'convert_geojson2shapes',
 ]

@@ -1,7 +1,8 @@
 import io
+import math
 from typing import Tuple, Union
 
-from .definition import Shape
+from .definition import Shape, NoSupportMethodException
 
 
 class Empty(Shape):
@@ -112,7 +113,8 @@ class Empty(Shape):
         return []
 
     def sep_p(self):
-        raise []
+        # raise NoSupportMethodException('Shape Empty cannot be separated by point')
+        return []
 
     def copy(self):
         return self

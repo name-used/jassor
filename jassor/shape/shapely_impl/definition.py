@@ -1,10 +1,14 @@
 from __future__ import annotations
 import abc
+from typing import Union, List, Tuple
+import numpy as np
 import shapely
 from shapely.geometry.base import BaseGeometry
 from ..interface import ShapeInterface
 
 MIN_AREA = 1e-7
+
+COORDS = Union[List[Tuple[float, float]], np.ndarray]
 
 
 class Shape(ShapeInterface['Shape'], abc.ABC):
@@ -178,3 +182,10 @@ class CoordinatesNotLegalException(Exception):
 
 class NoParametersException(Exception):
     pass
+
+
+class NoSupportMethodException(Exception):
+    pass
+
+
+number = Union[int, float]

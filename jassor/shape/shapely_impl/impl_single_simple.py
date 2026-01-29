@@ -1,11 +1,11 @@
 from typing import List, Tuple
-
+import sys
 import shapely
 from shapely.geometry.base import BaseGeometry
 
 from .definition import Shape, Single, CoordinatesNotLegalException, NoParametersException
 from .impl_single_complex import ComplexPolygon
-from . import functional as F
+from .normalizer import deintersect
 
 
 class SimplePolygon(ComplexPolygon):
@@ -35,18 +35,19 @@ class SimplePolygon(ComplexPolygon):
             assert isinstance(single, Single), 'Multi 类型无法转换为 Single'
             geo = single.geo
         elif from_p is not None:
-            outer = from_p
-            geo = shapely.Polygon(shell=outer, holes=[])
+            geo = shapely.Polygon(shell=from_p, holes=[])
         elif outer is not None:
             # 对用户输入进行检查和修复
-            geo = shapely.Polygon(shell=outer, holes=[])
-            geo = F.norm_geo(geo)
-            # 创建时要求轮廓必须合法
-            if geo is None or isinstance(geo, shapely.MultiPolygon):
-                raise CoordinatesNotLegalException(f'creating single polygon with geo=={type(geo)}')
-            # 还得是单连通的
-            if bool(geo.interiors):
-                raise CoordinatesNotLegalException(f'SimplePolygon not allowed interiors coordinates with geo interiors nums: {len(geo.interiors)}')
+            coords = deintersect(outer)
+            if len(coords) == 0:
+                # 通常是因为轮廓点数不达标，直接报错就行
+                raise CoordinatesNotLegalException(f'creating single polygon with outer=={outer}')
+            polygons = [shapely.Polygon(shell=coord, holes=[]) for coord in coords]
+            if len(polygons) > 1:
+                # 单一轮廓修复后变成多个轮廓，说明轮廓存在自相交问题，此时只保留最大轮廓
+                polygons.sort(key=lambda poly: poly.area, reverse=True)
+                sys.stderr.write(f'creating single polygon with multi-polygon drop coords with area {[poly.area for poly in polygons]}\n')
+            geo = polygons[0]
         else:
             # 没有任何参数的话，要报个错
             raise NoParametersException(f'Any of such parameters have to be provided: outer, geo, single, from_p')

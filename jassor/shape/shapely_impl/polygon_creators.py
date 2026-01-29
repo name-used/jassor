@@ -1,8 +1,16 @@
 import math
-from typing import Iterable
-from .definition import Shape
-from .impl_single_simple import SimplePolygon
+from typing import Iterable, overload, List, Tuple, Union, Optional
+import numpy as np
+import sys
+import shapely
+from shapely.ops import unary_union
+
+from .definition import Shape, COORDS, CoordinatesNotLegalException
 from .impl_circle import Circle
+from .impl_single_simple import SimplePolygon
+from .impl_single_complex import ComplexPolygon
+from .impl_multi_complex import MultiComplexPolygon
+from .normalizer import deintersect
 
 
 def create_regular_polygon(n: int, len_side: float = None, center_radius: float = None) -> Shape:
@@ -87,22 +95,22 @@ def _triangle_complete_arguments(sides, dgs):
         # 正对角有值，用余弦定理补边长
         p = [s is not None for s in sides].index(False)
         sides[p] = (
-            sides[(p + 1) % 3] ** 2 +
-            sides[(p - 1) % 3] ** 2 -
-            2 * sides[(p + 1) % 3] * sides[(p - 1) % 3] * math.cos(
-               dgs[(p + 1) % 3] * math.pi / 180
-            )
-        ) ** 0.5
+                           sides[(p + 1) % 3] ** 2 +
+                           sides[(p - 1) % 3] ** 2 -
+                           2 * sides[(p + 1) % 3] * sides[(p - 1) % 3] * math.cos(
+                       dgs[(p + 1) % 3] * math.pi / 180
+                   )
+                   ) ** 0.5
     # 正弦定理求角度不可靠（钝角锐角问题），因此统一用余弦定理求角度
     for i, d in enumerate(dgs):
         if d is not None: continue
         dgs[i] = math.acos(
             (
-               sides[i] ** 2 +
-               sides[(i + 1) % 3] ** 2 -
-               sides[(i - 1) % 3] ** 2
+                    sides[i] ** 2 +
+                    sides[(i + 1) % 3] ** 2 -
+                    sides[(i - 1) % 3] ** 2
             ) / (
-                2 * sides[i] * sides[(i + 1) % 3]
+                    2 * sides[i] * sides[(i + 1) % 3]
             )
         ) * 180 / math.pi
     return sides, dgs
@@ -120,7 +128,7 @@ def create_polygon(len_sides: Iterable[float], degrees: Iterable[float], ring_cl
     """
     # 几何学角度转化为坐标系倾角
     dgs = [180 - d for d in degrees]
-    dgs = [sum(dgs[:i+1]) for i, _ in enumerate(dgs)]
+    dgs = [sum(dgs[:i + 1]) for i, _ in enumerate(dgs)]
     if ring_close:
         assert abs(dgs[-1] - 360) < 5, f'角度差过大，请检查输入参数: {len_sides}, {degrees}'
     dgs.insert(0, 0)
@@ -156,3 +164,80 @@ def create_sector(radius: float, degree: float, num: int = 100) -> Shape:
     base_points = [(math.cos(d), math.sin(d)) for d in base_directs]
     outer = [(0., 0.)] + [(p * radius, q * radius) for p, q in base_points]
     return SimplePolygon(outer=outer)
+
+
+def create_from_adjacencies(outers: List[COORDS], inners: List[COORDS], adjacencies: List[int]):
+    inners = inners or []
+    adjacencies = adjacencies or []
+    poly_coords = [(outer, []) for outer in outers]
+    for inner, adjacency in zip(inners, adjacencies):
+        if not (0 <= adjacency < len(poly_coords)): continue
+        poly_coords[adjacency][1].append(inner)
+    return create_from_poly_coords(poly_coords)
+
+
+def create_from_hierarchy(contours: List[COORDS], hierarchy: Optional[np.ndarray]):
+    if hierarchy is None:  # hierarchy[0] = [(next, prev, child, parent)]
+        return Shape.EMPTY
+    # cv2 愚蠢的设计，contours 是 [n, 1, 2], hirarchy 是 [1, n, 4]
+    hierarchy = hierarchy if len(hierarchy.shape) == 2 else hierarchy[0]
+    poly_coords = []
+    for i, (contour, h) in enumerate(zip(contours, hierarchy)):
+        if h[-1] == -1:
+            if isinstance(contour, np.ndarray):
+                contour = contour.tolist() if len(contour.shape) == 2 else contour[:, 0, :].tolist()
+            poly_coords.append((contour, []))
+        else:
+            poly_coords.append(None)
+    for i, (contour, h) in enumerate(zip(contours, hierarchy)):
+        if h[-1] != -1:
+            if isinstance(contour, np.ndarray):
+                contour = contour.tolist() if len(contour.shape) == 2 else contour[:, 0, :].tolist()
+            poly_coords[h[-1]][1].append(contour)
+    poly_coords = [x for x in poly_coords if x is not None]
+    return create_from_poly_coords(poly_coords)
+
+
+def create_from_poly_coords(poly_coords: Union[List[List[COORDS]], List[Tuple[COORDS, List[COORDS]]]]):
+    legal_coords_list = []
+    for poly in poly_coords:
+        if isinstance(poly, list):
+            outer, *inners = poly
+        else:
+            outer, inners = poly
+
+        outers = deintersect(outer)
+        inners = sum([deintersect(inner) for inner in inners], [])
+        if len(outers) == 0:
+            # 通常是因为轮廓点数不达标，在这种状态下可以直接丢弃
+            continue
+        if len(outers) > 1:
+            # 单一轮廓修复后变成多个轮廓，说明轮廓存在自相交问题，此时需拆分外轮廓，并按配位关系重组内轮廓
+            sys.stderr.write(f'creating multi polygon found self-intersect coord=={outer}\n')
+            polygons = [shapely.Polygon(shell=outer, holes=[]) for outer in outers]
+            coords = [(polygon.exterior.coords, [inner for inner in inners if not polygon.disjoint(shapely.LineString(inner))]) for polygon in polygons]
+        else:
+            polygon = shapely.Polygon(shell=outers[0], holes=[])
+            coords = [(polygon.exterior.coords, [inner for inner in inners if not polygon.disjoint(shapely.LineString(inner))])]
+        legal_coords_list.extend(coords)
+
+    # 对用户输入进行检查和修复
+    geo = shapely.MultiPolygon(polygons=legal_coords_list)
+    try:
+        geo = unary_union(geo)
+    except Exception as e:
+        sys.stderr.write(f'geometry invalid caused by {e}\n')
+    geo = geo.buffer(0)
+
+    if geo.is_empty:
+        # geo 是空，这种没办法，只能报错处理
+        return Shape.EMPTY
+    elif isinstance(geo, shapely.Polygon):
+        # 如果 geo 是单个图形，就返回 ComplexPolygon
+        return ComplexPolygon(geo=geo)
+    elif isinstance(geo, shapely.MultiPolygon):
+        # 如果 geo 是多个图形，就返回 MultiComplexPolygon
+        return MultiComplexPolygon(geo=geo)
+    else:
+        # 我暂时想不到什么情况可能会在 buffer(0) 的条件下出现 poly、multi_poly 以外的数据类型，等出现报错再说吧。。
+        raise AssertionError(f'Unexpected geometry type after buffer(0): {type(geo)}')
